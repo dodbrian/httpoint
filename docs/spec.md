@@ -1,7 +1,7 @@
 # HTTPoint - Project Specification
 
 ## Overview
-HTTPoint is a Node.js command-line application that serves static files from a local directory via HTTP.
+HTTPoint is a cross-platform Node.js command-line application that serves static files from a local directory via HTTP.
 
 ### Core Features
 - Serves static files from a configurable root directory
@@ -99,6 +99,7 @@ The server automatically detects and displays the local IP address, and binds to
 - **Runtime**: Node.js (version 14+ recommended)
 - **Dependencies**: None (uses only Node.js built-in modules)
 - **Modules**: `http`, `fs`, `path`, `url`
+- **Cross-platform**: Compatible with Windows, macOS, and Linux
 
 ## Author
 Denis Zimin
