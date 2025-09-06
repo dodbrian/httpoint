@@ -1,0 +1,1 @@
+- do not attempt to open md files from a cli after finishing a task
