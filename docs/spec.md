@@ -21,6 +21,21 @@ When accessing a directory path, the server provides an HTML page with:
 - **File links**: Clickable links that serve/download the file
 - **Directory links**: Clickable links to navigate into subdirectories
 - **Navigation**: Parent directory navigation (when not at root)
+- **File Upload**: A circular button in the bottom-right corner for uploading files to the current directory
+
+### File Upload
+The directory listing page includes a file upload feature:
+- **Upload Button**: Circular button with a plus icon in the bottom-right corner
+- **Upload Overlay**: Clicking the button opens an overlay with:
+  - Drag-and-drop area for files
+  - Browse file input field
+  - Ability to select multiple files
+- **Upload Process**:
+  - Upload starts immediately upon file selection
+  - Progress bar displays upload status for each file
+  - Users can add more files during upload
+  - No additional confirmation required
+- **Completion**: Users can close the overlay to return to the updated directory listing showing newly uploaded files
 
 ### Logging
 All HTTP requests are logged to STDOUT in the format:
