@@ -1,0 +1,26 @@
+{
+  "name": "httpoint",
+  "version": "1.0.0",
+  "description": "A Node.js command-line application that serves static files from a local directory via HTTP",
+  "main": "serve.js",
+  "bin": {
+    "httpoint": "./serve.js"
+  },
+  "scripts": {
+    "start": "node serve.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "http",
+    "server",
+    "static",
+    "files",
+    "cli",
+    "local"
+  ],
+  "author": "Denis Zimin",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
