@@ -81,14 +81,17 @@ node serve.js [options]
 ### Accessing the Server
 Once running, the server will be available at:
 - **Locally**: `http://localhost:<port>/`
-- **On LAN**: `http://<your-ip-address>:<port>/`
+- **On LAN**: `http://<actual-ip-address>:<port>/`
 
-The server binds to all network interfaces (0.0.0.0), making it accessible from other devices on the local network.
+The server automatically detects and displays the local IP address, and binds to all network interfaces (0.0.0.0), making it accessible from other devices on the local network.
 
 ## Technical Requirements
 - **Runtime**: Node.js (version 14+ recommended)
 - **Dependencies**: None (uses only Node.js built-in modules)
 - **Modules**: `http`, `fs`, `path`, `url`
+
+## Author
+Denis Zimin
 
 ## License
 MIT © 2025
