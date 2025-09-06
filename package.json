@@ -4,7 +4,7 @@
   "description": "A Node.js command-line application that serves static files from a local directory via HTTP",
   "main": "serve.js",
   "bin": {
-    "httpoint": "./serve.js"
+    "httpoint": "serve.js"
   },
   "scripts": {
     "start": "node serve.js",
