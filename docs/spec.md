@@ -1,52 +1,94 @@
-# Project Specification
+# HTTPoint - Project Specification
 
 ## Overview
-This is a **Node.js** command-line application that serves static files from the local working directory.
+HTTPoint is a Node.js command-line application that serves static files from a local directory via HTTP.
 
-- The application starts by listening on a configurable port (default `3000`).
-- It uses the built-in `http` module to create an HTTP server.
-- Requests are resolved relative to the current working directory. For example, requesting `/index.html` serves `<cwd>/index.html` if it exists.
-- If a requested file does not exist, the server responds with **404 Not Found**.
+### Core Features
+- Serves static files from a configurable root directory
+- Provides directory browsing with file listings
+- Configurable via environment variables or command-line arguments
+- Lightweight implementation using Node.js built-in modules
 
-## Directory Listing Features
-When accessing a directory, the server provides:
-- Clickable file links that initiate downloads when clicked
-- Browsable directory links to navigate subdirectories
-- The application logs each request to STDOUT in the format: `METHOD PATH STATUS_CODE`.
+## Functionality
+
+### File Serving
+- Serves files relative to the configured root directory
+- Returns appropriate HTTP status codes (200 for success, 404 for not found)
+- Supports all file types (binary and text)
+
+### Directory Listing
+When accessing a directory path, the server provides an HTML page with:
+- **File links**: Clickable links that serve/download the file
+- **Directory links**: Clickable links to navigate into subdirectories
+- **Navigation**: Parent directory navigation (when not at root)
+
+### Logging
+All HTTP requests are logged to STDOUT in the format:
+```
+METHOD PATH STATUS_CODE
+```
+Example: `GET /index.html 200`
 
 ## Configuration
-## Configuration
 
-The following environment variables can be used to customize behavior:
-
+### Environment Variables
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `HTTPOINT_PORT`   | Port number on which the server listens. | `3000` |
-| `HTTPOINT_ROOT`   | Directory from which files are served. | Current working directory |
+| `HTTPOINT_PORT` | Port number to listen on | `3000` |
+| `HTTPOINT_ROOT` | Root directory to serve files from | Current working directory |
 
-## Command Line Parameters
+### Command Line Arguments
+- `--port <number>`: Override the port number
+- `--path <directory>`: Override the root directory path
 
-The application also supports command-line parameters for quick configuration:
-
-- `--port <number>`: Specify the port number (default: `3000`)
-- `--path <path>`: Specify the directory to serve (default: current working directory)
+**Note**: Command-line arguments take precedence over environment variables.
 
 ## Usage
+
+### Installation
 ```bash
-# Install dependencies (if any)
-npm install
-
-# Run the server with environment variables
-HTTPOINT_PORT=8080 HTTPOINT_ROOT=/path/to/directory node serve.js
-
-# Run the server with command-line parameters
-node serve.js --port 8080 --path /path/to/directory
-
-# Run the server with default settings
-node serve.js
+npm install -g httpoint
 ```
 
-The server will be available at `http://localhost:<port>/`.
+### Running the Server
+
+**Default configuration:**
+```bash
+npx httpoint
+```
+
+**With environment variables:**
+```bash
+HTTPOINT_PORT=8080 HTTPOINT_ROOT=/var/www npx httpoint
+```
+
+**With command-line arguments:**
+```bash
+npx httpoint --port 8080 --path /var/www
+```
+
+**Mixed configuration:**
+```bash
+HTTPOINT_ROOT=/var/www npx httpoint --port 8080
+```
+
+### Development Usage
+For local development, you can also run directly:
+```bash
+node serve.js [options]
+```
+
+### Accessing the Server
+Once running, the server will be available at:
+- **Locally**: `http://localhost:<port>/`
+- **On LAN**: `http://<your-ip-address>:<port>/`
+
+The server binds to all network interfaces (0.0.0.0), making it accessible from other devices on the local network.
+
+## Technical Requirements
+- **Runtime**: Node.js (version 14+ recommended)
+- **Dependencies**: None (uses only Node.js built-in modules)
+- **Modules**: `http`, `fs`, `path`, `url`
 
 ## License
 MIT © 2025
