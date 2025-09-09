@@ -1,1 +1,2 @@
 - do not attempt to open md files from a cli after finishing a task
+- before making changes to the code always document them in the docs/spec.md file
