@@ -57,8 +57,17 @@ function parseMultipart(body, boundary) {
 
   while (end !== -1) {
     const partStart = end + boundaryBuffer.length;
-    const partEnd = body.indexOf(boundaryBuffer, partStart);
-    if (partEnd === -1) break;
+    let partEnd = body.indexOf(boundaryBuffer, partStart);
+
+    // Check if this is the last part (end boundary)
+    if (partEnd === -1) {
+      const endBoundaryIndex = body.indexOf(endBoundaryBuffer, partStart);
+      if (endBoundaryIndex !== -1) {
+        partEnd = endBoundaryIndex;
+      } else {
+        break;
+      }
+    }
 
     const part = body.slice(partStart, partEnd);
     const headerEnd = part.indexOf('\r\n\r\n');
@@ -79,6 +88,12 @@ function parseMultipart(body, boundary) {
         }
       }
     }
+
+    // If we found the end boundary, we're done
+    if (partEnd === body.indexOf(endBoundaryBuffer, partStart)) {
+      break;
+    }
+
     start = partEnd;
     end = body.indexOf(boundaryBuffer, start);
   }

@@ -67,11 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         xhr.addEventListener('load', () => {
             if (xhr.status === 200) {
+                // Clear file input after successful upload
+                fileInput.value = '';
                 location.reload();
             } else {
                 alert('Upload failed');
             }
         });
+
         xhr.send(formData);
     }
 });
