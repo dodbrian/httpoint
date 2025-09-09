@@ -30,6 +30,8 @@ The directory listing page includes a file upload feature:
   - Drag-and-drop area for files
   - Browse file input field
   - Ability to select multiple files
+  - Close button in the top right corner
+  - Can be closed by pressing the ESC key
 - **Upload Process**:
   - Upload starts immediately upon file selection
   - Progress bar displays upload status for each file

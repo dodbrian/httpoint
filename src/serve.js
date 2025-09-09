@@ -180,6 +180,7 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
         .progress { width: 100%; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 10px 0; display: none; }
         .progress-bar { height: 100%; background: #007bff; width: 0%; }
         .close-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; }
+        .upload-modal { position: relative; }
     </style>
 </head>
 <body>
@@ -218,6 +219,14 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
             uploadOverlay.style.display = 'none';
             progress.style.display = 'none';
             progressBar.style.width = '0%';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && uploadOverlay.style.display === 'flex') {
+                uploadOverlay.style.display = 'none';
+                progress.style.display = 'none';
+                progressBar.style.width = '0%';
+            }
         });
 
         dropArea.addEventListener('click', () => {
