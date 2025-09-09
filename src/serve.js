@@ -123,65 +123,7 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
 <head>
     <meta charset="utf-8">
     <title>Directory listing for ${requestPath}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; position: relative; }
-        h1 { color: #333; }
-        ul { list-style: none; padding: 0; }
-        li { margin: 8px 0; }
-        a { text-decoration: none; color: #0066cc; }
-        a:hover { text-decoration: underline; }
-        .header { border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
-        .upload-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: #007bff;
-            color: white;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .upload-btn:hover { background: #0056b3; }
-        .upload-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .upload-modal {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 400px;
-            text-align: center;
-        }
-        .drop-area {
-            border: 2px dashed #ccc;
-            padding: 20px;
-            margin: 10px 0;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .drop-area.dragover { border-color: #007bff; background: #f8f9fa; }
-        .file-input { margin: 10px 0; }
-        .progress { width: 100%; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 10px 0; display: none; }
-        .progress-bar { height: 100%; background: #007bff; width: 0%; }
-        .close-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; }
-        .upload-modal { position: relative; }
-    </style>
+    <link rel="stylesheet" href="/public/styles.css">
 </head>
 <body>
     <div class="header">
@@ -202,83 +144,7 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
             </div>
         </div>
     </div>
-    <script>
-        const uploadBtn = document.getElementById('uploadBtn');
-        const uploadOverlay = document.getElementById('uploadOverlay');
-        const closeBtn = document.getElementById('closeBtn');
-        const dropArea = document.getElementById('dropArea');
-        const fileInput = document.getElementById('fileInput');
-        const progress = document.getElementById('progress');
-        const progressBar = document.getElementById('progressBar');
-
-        uploadBtn.addEventListener('click', () => {
-            uploadOverlay.style.display = 'flex';
-        });
-
-        closeBtn.addEventListener('click', () => {
-            uploadOverlay.style.display = 'none';
-            progress.style.display = 'none';
-            progressBar.style.width = '0%';
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && uploadOverlay.style.display === 'flex') {
-                uploadOverlay.style.display = 'none';
-                progress.style.display = 'none';
-                progressBar.style.width = '0%';
-            }
-        });
-
-        dropArea.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.classList.add('dragover');
-        });
-
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.classList.remove('dragover');
-        });
-
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            uploadFiles(files);
-        });
-
-        fileInput.addEventListener('change', () => {
-            const files = fileInput.files;
-            uploadFiles(files);
-        });
-
-        function uploadFiles(files) {
-            if (files.length === 0) return;
-            const formData = new FormData();
-            for (let file of files) {
-                formData.append('files', file);
-            }
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', window.location.pathname);
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percent = (e.loaded / e.total) * 100;
-                    progress.style.display = 'block';
-                    progressBar.style.width = percent + '%';
-                }
-            });
-            xhr.addEventListener('load', () => {
-                if (xhr.status === 200) {
-                    location.reload();
-                } else {
-                    alert('Upload failed');
-                }
-            });
-            xhr.send(formData);
-        }
-    </script>
+    <script src="/public/script.js"></script>
 </body>
 </html>`;
 }
@@ -310,6 +176,19 @@ function createServer(config) {
     }
 
     try {
+      // Handle static files from /public/ path
+      if (requestPath.startsWith('/public/')) {
+        const publicFilePath = path.join(__dirname, 'public', requestPath.substring(8));
+        const stats = await fs.promises.stat(publicFilePath);
+        const mimeType = getMimeType(publicFilePath);
+        res.setHeader('Content-Type', mimeType);
+        res.statusCode = 200;
+        console.log(`${req.method} ${requestPath} 200`);
+        const readStream = fs.createReadStream(publicFilePath);
+        readStream.pipe(res);
+        return;
+      }
+
       const stats = await fs.promises.stat(filePath);
       if (stats.isDirectory()) {
         if (req.method === 'POST') {

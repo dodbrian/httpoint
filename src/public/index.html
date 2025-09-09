@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Directory listing</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Directory listing for <span id="requestPath"></span></h1>
+    </div>
+    <ul id="fileList">
+    </ul>
+    <button class="upload-btn" id="uploadBtn">+</button>
+    <div class="upload-overlay" id="uploadOverlay">
+        <div class="upload-modal">
+            <button class="close-btn" id="closeBtn">&times;</button>
+            <h2>Upload Files</h2>
+            <div class="drop-area" id="dropArea">Drag & drop files here or click to browse</div>
+            <input type="file" class="file-input" id="fileInput" multiple style="display: none;">
+            <div class="progress" id="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
