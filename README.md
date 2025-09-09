@@ -80,13 +80,13 @@ When accessing a directory, HTTPoint provides:
 
 ### Running Locally
 ```bash
-node serve.js [options]
+node src/serve.js [options]
 ```
 
 ### Testing
 ```bash
 # Start server in one terminal
-node serve.js --port 3000
+node src/serve.js --port 3000
 
 # Test in another terminal
 curl http://localhost:3000/

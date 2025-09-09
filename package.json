@@ -2,12 +2,12 @@
   "name": "httpoint",
   "version": "1.0.0",
   "description": "A Node.js command-line application that serves static files from a local directory via HTTP",
-  "main": "serve.js",
+  "main": "src/serve.js",
   "bin": {
-    "httpoint": "serve.js"
+    "httpoint": "src/serve.js"
   },
   "scripts": {
-    "start": "node serve.js",
+    "start": "node src/serve.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

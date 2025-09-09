@@ -63,7 +63,7 @@ Example: `GET /index.html 200`
 ### Installation
 To enable running HTTPoint with `npx` on any computer, the package must be published to the npm registry. Follow these steps:
 
-1. Ensure the package is properly configured in `package.json` with a unique name and the `bin` field pointing to `serve.js`.
+1. Ensure the package is properly configured in `package.json` with a unique name and the `bin` field pointing to `src/serve.js`.
 2. Publish the package to npm using:
    ```bash
    npm publish
