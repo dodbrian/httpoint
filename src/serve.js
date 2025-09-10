@@ -4,7 +4,6 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-const crypto = require('crypto');
 
 // Parse command line arguments
 function parseArgs() {
@@ -194,7 +193,6 @@ function createServer(config) {
       // Handle static files from /public/ path
       if (requestPath.startsWith('/public/')) {
         const publicFilePath = path.join(__dirname, 'public', requestPath.substring(8));
-        const stats = await fs.promises.stat(publicFilePath);
         const mimeType = getMimeType(publicFilePath);
         res.setHeader('Content-Type', mimeType);
         res.statusCode = 200;
