@@ -18,7 +18,7 @@ HTTPoint is a cross-platform Node.js command-line application that serves static
 
 ### Directory Listing
 When accessing a directory path, the server provides an HTML page with:
-- **File links**: Clickable links that serve/download the file
+- **File links**: Clickable links that serve/download the file, with file sizes displayed in human-readable format (B, KB, MB, GB, TB)
 - **Directory links**: Clickable links to navigate into subdirectories
 - **Navigation**: Parent directory navigation (when not at root)
 - **File Upload**: A circular button in the bottom-right corner for uploading files to the current directory

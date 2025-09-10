@@ -84,6 +84,18 @@ function getMimeType(filePath) {
   return mimeTypes[ext] || 'application/octet-stream';
 }
 
+// Format file size in human readable format
+function formatFileSize(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
 // Simple multipart parser
 function parseMultipart(body, boundary) {
   const parts = [];
@@ -162,8 +174,8 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
     if (stat.isDirectory()) {
       directories.push(`<li><a href="${href}/">📁 ${file}/</a></li>`);
     } else {
-      const size = (stat.size / 1024).toFixed(1);
-      regularFiles.push(`<li><a href="${href}">📄 ${file}</a> <span style="color: #666;">(${size} KB)</span></li>`);
+      const size = formatFileSize(stat.size);
+      regularFiles.push(`<li><a href="${href}">📄 ${file}</a> <span style="color: #666;">(${size})</span></li>`);
     }
   });
 
