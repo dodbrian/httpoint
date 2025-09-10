@@ -1,7 +1,8 @@
 {
   "name": "httpoint",
   "version": "1.0.0",
-  "description": "A Node.js command-line application that serves static files from a local directory via HTTP",
+  "description": "A Node.js command-line application that serves static files from a local directory via HTTP and supports file uploads",
+  "repository": "https://github.com/dodbrian/httpoint.git",
   "main": "src/serve.js",
   "bin": {
     "httpoint": "src/serve.js"
@@ -15,6 +16,7 @@
     "server",
     "static",
     "files",
+    "upload",
     "cli",
     "local"
   ],
