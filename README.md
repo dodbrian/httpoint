@@ -1,30 +1,16 @@
 # HTTPoint
 
-A lightweight Node.js command-line application that serves static files from a local directory via HTTP.
+A lightweight Node.js command-line application that serves static files from a local directory via HTTP, with support for file uploads and directory browsing.
 
 ## Features
 
 - 🚀 Serves static files from any directory
 - 📁 Directory browsing with file listings
+- 📤 File upload support with drag & drop interface
 - 🌐 Accessible on local network (LAN)
 - ⚙️ Configurable via environment variables or CLI arguments
 - 📝 Request logging
-- 🔒 Security protection against directory traversal
 - 💾 No external dependencies
-
-## Installation
-
-### Global Installation
-```bash
-npm install -g httpoint
-```
-
-### Local Development
-```bash
-git clone <repository-url>
-cd httpoint
-npm install
-```
 
 ## Usage
 
@@ -46,7 +32,7 @@ HTTPOINT_PORT=8080 HTTPOINT_ROOT=/var/www npx httpoint
 ### All Options
 ```bash
 # Command line arguments (take precedence)
-npx httpoint --port 3000 --path ./public
+npx httpoint --port 3000 --path ./public --debug --help
 
 # Environment variables
 HTTPOINT_PORT=3000
@@ -55,10 +41,12 @@ HTTPOINT_ROOT=./public
 
 ## Configuration
 
-| Option | CLI Argument | Environment Variable | Default |
-|--------|--------------|---------------------|---------|
-| Port | `--port <number>` | `HTTPOINT_PORT` | `3000` |
-| Root Directory | `--path <directory>` | `HTTPOINT_ROOT` | Current directory |
+| Option | CLI Argument | Environment Variable | Default | Description |
+|--------|--------------|---------------------|---------|-------------|
+| Port | `--port <number>` | `HTTPOINT_PORT` | `3000` | Port to listen on |
+| Root Directory | `--path <directory>` | `HTTPOINT_ROOT` | Current directory | Root directory to serve |
+| Debug Mode | `--debug` | N/A | `false` | Enable debug logging |
+| Help | `--help` | N/A | N/A | Show help information |
 
 ## Accessing the Server
 
@@ -75,6 +63,21 @@ When accessing a directory, HTTPoint provides:
 - 📄 Clickable file links for download
 - 📊 File sizes
 - 🔙 Parent directory navigation
+- 📤 Upload button for file uploads (drag & drop supported)
+
+## Installation
+
+### Global Installation
+```bash
+npm install -g httpoint
+```
+
+### Local Development
+```bash
+git clone <repository-url>
+cd httpoint
+npm install
+```
 
 ## Development
 
