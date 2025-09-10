@@ -45,7 +45,18 @@ The file upload process is implemented using the following technical approach:
 **HTTP Protocol**:
 - Uses HTTP POST method with `multipart/form-data` content type
 - Files are uploaded to the same path as the current directory being viewed
-- Request body is collected entirely before processing begins
+- Request body is collected as raw binary data (Buffer) before processing begins
+- Multipart data contains mixed content: text headers (Content-Disposition, boundaries) and binary file data
+
+**Multipart Form Data Format (RFC 2388)**:
+- **Structure**: Data is divided into parts separated by boundary strings
+- **Boundaries**: Each part begins with `--boundary\r\n` and ends with `\r\n--boundary--\r\n`
+- **Part Format**: Each part contains headers followed by `\r\n\r\n` then the body content
+- **Content-Disposition**: Header specifies `form-data; name="fieldName"; filename="originalName"`
+- **Text Content**: Headers and metadata are sent as UTF-8 text with CRLF line endings
+- **Binary Content**: File data is included as raw binary bytes without encoding
+- **Content-Type**: May include `Content-Type` header for files (e.g., `image/jpeg`, `text/plain`)
+- **Mixed Representation**: The same multipart stream contains both human-readable text (headers) and raw binary (file contents)
 
 **Server-Side Processing**:
 - Custom multipart parser extracts file data from the request body
@@ -53,6 +64,15 @@ The file upload process is implemented using the following technical approach:
 - File names are preserved exactly as provided by the client
 - Existing files with the same name are overwritten without confirmation
 - All files in a single upload are processed sequentially
+
+**Custom Multipart Parser**:
+- **Boundary Detection**: Identifies multipart boundaries using `Buffer.from('--' + boundary)` and `Buffer.from('--' + boundary + '--')` for start and end markers
+- **Part Extraction**: Iteratively finds each part between boundaries using `body.indexOf()` to locate boundary positions
+- **Header Parsing**: Splits each part into headers and data using `part.indexOf('\r\n\r\n')` as the delimiter
+- **Content-Disposition Processing**: Extracts `filename` and `name` values from the `Content-Disposition` header using regex patterns `/filename="([^"]+)"/` and `/name="([^"]+)"/`
+- **Data Extraction**: Captures file content by slicing the buffer after the header section (`part.slice(headerEnd + 4)`)
+- **Part Collection**: Builds an array of objects containing `name`, `filename`, and `data` for each successfully parsed file part
+- **Termination Logic**: Stops parsing when the end boundary is encountered or no more boundaries are found
 
 **Progress Tracking**:
 - Real-time upload progress is tracked on the client side using XMLHttpRequest
