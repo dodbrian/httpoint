@@ -112,6 +112,8 @@ METHOD PATH STATUS_CODE
 ```
 Example: `GET /index.html 200`
 
+Requests to the `/_httpoint_assets/` path (static assets like CSS, JS files) are only logged when debug mode is enabled (using `--debug` flag) to reduce noise in normal operation.
+
 For POST requests, the request body is also logged to STDOUT when debug mode is enabled (using `--debug` flag).
 Example: `POST body for /: [body content]`
 

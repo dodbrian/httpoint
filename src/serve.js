@@ -188,7 +188,7 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
 <head>
     <meta charset="utf-8">
     <title>Directory listing for ${requestPath}</title>
-    <link rel="stylesheet" href="/public/styles.css">
+    <link rel="stylesheet" href="/_httpoint_assets/styles.css">
 </head>
 <body>
     <div class="header">
@@ -209,7 +209,7 @@ function generateDirectoryListing(dirPath, requestPath, rootPath) {
             </div>
         </div>
     </div>
-    <script src="/public/script.js"></script>
+    <script src="/_httpoint_assets/script.js"></script>
 </body>
 </html>`;
 }
@@ -242,13 +242,17 @@ function createServer(config) {
     }
 
     try {
-      // Handle static files from /public/ path
-      if (requestPath.startsWith('/public/')) {
-        const publicFilePath = path.join(__dirname, 'public', requestPath.substring(8));
+      // Handle static files from /_httpoint_assets/ path
+      if (requestPath.startsWith('/_httpoint_assets/')) {
+        const publicFilePath = path.join(__dirname, '_httpoint_assets', requestPath.substring(17));
         const mimeType = getMimeType(publicFilePath);
         res.setHeader('Content-Type', mimeType);
         res.statusCode = 200;
-        console.log(`${req.method} ${requestPath} 200`);
+
+        if (config.debug) {
+          console.log(`${req.method} ${requestPath} 200`);
+        }
+
         const readStream = fs.createReadStream(publicFilePath);
         readStream.pipe(res);
         return;
