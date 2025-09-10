@@ -10,7 +10,8 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const config = {
     port: process.env.HTTPOINT_PORT || 3000,
-    root: process.env.HTTPOINT_ROOT || process.cwd()
+    root: process.env.HTTPOINT_ROOT || process.cwd(),
+    debug: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -20,6 +21,8 @@ function parseArgs() {
     } else if (args[i] === '--path' && args[i + 1]) {
       config.root = path.resolve(args[i + 1]);
       i++;
+    } else if (args[i] === '--debug') {
+      config.debug = true;
     }
   }
 
@@ -43,6 +46,7 @@ function getMimeType(filePath) {
     '.pdf': 'application/pdf',
     '.zip': 'application/zip'
   };
+
   return mimeTypes[ext] || 'application/octet-stream';
 }
 
@@ -177,6 +181,10 @@ function createServer(config) {
       req.on('end', () => resolve(Buffer.concat(chunks)));
       req.on('error', reject);
     });
+
+    if (req.method === 'POST' && config.debug) {
+      console.log(`POST body for ${requestPath}:\n`, body.toString());
+    }
 
     // Security check - prevent directory traversal
     if (!filePath.startsWith(config.root)) {

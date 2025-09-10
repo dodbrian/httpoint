@@ -46,6 +46,9 @@ METHOD PATH STATUS_CODE
 ```
 Example: `GET /index.html 200`
 
+For POST requests, the request body is also logged to STDOUT when debug mode is enabled (using `--debug` flag).
+Example: `POST body for /: [body content]`
+
 ## Configuration
 
 ### Environment Variables
@@ -57,6 +60,7 @@ Example: `GET /index.html 200`
 ### Command Line Arguments
 - `--port <number>`: Override the port number
 - `--path <directory>`: Override the root directory path
+- `--debug`: Enable debug mode for verbose logging (e.g., POST body logging)
 
 **Note**: Command-line arguments take precedence over environment variables.
 

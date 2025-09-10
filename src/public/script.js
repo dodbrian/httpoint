@@ -52,10 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function uploadFiles(files) {
         if (files.length === 0) return;
+        
         const formData = new FormData();
+        
         for (let file of files) {
             formData.append('files', file);
         }
+        
         const xhr = new XMLHttpRequest();
         xhr.open('POST', window.location.pathname);
         xhr.upload.addEventListener('progress', (e) => {
