@@ -9,7 +9,8 @@ const url = require('url');
 function printHelp() {
   console.log('HTTPoint - Simple HTTP file server');
   console.log('');
-  console.log('Usage: node serve.js [options]');
+  console.log('Usage:');
+  console.log('  npx httpoint [options]');
   console.log('');
   console.log('Options:');
   console.log('  --port <number>    Port to listen on (default: 3000)');
