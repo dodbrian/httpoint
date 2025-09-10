@@ -61,6 +61,7 @@ Example: `POST body for /: [body content]`
 - `--port <number>`: Override the port number
 - `--path <directory>`: Override the root directory path
 - `--debug`: Enable debug mode for verbose logging (e.g., POST body logging)
+- `--help`: Display help information and exit
 
 **Note**: Command-line arguments take precedence over environment variables.
 

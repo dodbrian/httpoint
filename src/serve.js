@@ -5,6 +5,23 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+// Print help information
+function printHelp() {
+  console.log('HTTPoint - Simple HTTP file server');
+  console.log('');
+  console.log('Usage: node serve.js [options]');
+  console.log('');
+  console.log('Options:');
+  console.log('  --port <number>    Port to listen on (default: 3000)');
+  console.log('  --path <directory> Root directory to serve (default: current directory)');
+  console.log('  --debug            Enable debug logging');
+  console.log('  --help             Show this help');
+  console.log('');
+  console.log('Environment variables:');
+  console.log('  HTTPOINT_PORT      Port number');
+  console.log('  HTTPOINT_ROOT      Root directory');
+}
+
 // Parse command line arguments
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -14,16 +31,32 @@ function parseArgs() {
     debug: false
   };
 
+  let showHelp = false;
+  const unknownArgs = [];
+
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--port' && args[i + 1]) {
+    if (args[i] === '--help') {
+      showHelp = true;
+    } else if (args[i] === '--debug') {
+      config.debug = true;
+    } else if (args[i] === '--port' && args[i + 1]) {
       config.port = parseInt(args[i + 1], 10);
       i++;
     } else if (args[i] === '--path' && args[i + 1]) {
       config.root = path.resolve(args[i + 1]);
       i++;
-    } else if (args[i] === '--debug') {
-      config.debug = true;
+    } else if (args[i].startsWith('--')) {
+      unknownArgs.push(args[i]);
     }
+  }
+
+  if (showHelp || unknownArgs.length > 0) {
+    if (unknownArgs.length > 0) {
+      console.error(`Unknown arguments: ${unknownArgs.join(', ')}`);
+      console.error('');
+    }
+    printHelp();
+    process.exit(0);
   }
 
   return config;
