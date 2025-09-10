@@ -178,9 +178,6 @@ function createServer(config) {
       req.on('error', reject);
     });
 
-    // Log request
-    console.log(`${req.method} ${requestPath} ${res.statusCode || '...'}`);
-
     // Security check - prevent directory traversal
     if (!filePath.startsWith(config.root)) {
       res.statusCode = 403;
