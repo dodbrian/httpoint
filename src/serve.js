@@ -4,10 +4,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const { version } = require('../package.json');
 
 // Print help information
 function printHelp() {
-  console.log('HTTPoint - Simple HTTP file server');
+  console.log(`HTTPoint v${version} - Simple HTTP file server`);
   console.log('');
   console.log('Usage:');
   console.log('  npx httpoint [options]');

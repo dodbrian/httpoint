@@ -133,6 +133,9 @@ Example: `POST body for /: [body content]`
 
 ## Usage
 
+### Help Screen
+The help screen displays the current version of HTTPoint, retrieved from package.json, in the format "HTTPoint vX.Y.Z - Simple HTTP file server".
+
 ### Installation
 To enable running HTTPoint with `npx` on any computer, the package must be published to the npm registry. Follow these steps:
 
