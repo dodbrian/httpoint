@@ -39,6 +39,52 @@ The directory listing page includes a file upload feature:
   - No additional confirmation required
 - **Completion**: Users can close the overlay to return to the updated directory listing showing newly uploaded files
 
+#### Implementation Details
+The file upload process is implemented using the following technical approach:
+
+**HTTP Protocol**:
+- Uses HTTP POST method with `multipart/form-data` content type
+- Files are uploaded to the same path as the current directory being viewed
+- Request body is collected entirely before processing begins
+
+**Server-Side Processing**:
+- Custom multipart parser extracts file data from the request body
+- Files are written synchronously to disk using Node.js fs promises
+- File names are preserved exactly as provided by the client
+- Existing files with the same name are overwritten without confirmation
+- All files in a single upload are processed sequentially
+
+**Progress Tracking**:
+- Real-time upload progress is tracked on the client side using XMLHttpRequest
+- Progress bar displays upload completion percentage as files are transmitted
+- Progress feedback is provided during the upload process
+- Progress tracking is handled entirely by the browser's XMLHttpRequest API
+
+**Error Handling**:
+- Directory traversal attempts return 403 Forbidden
+- Missing or invalid multipart boundary returns 400 Bad Request
+- Invalid content-type header returns 400 Bad Request
+- File system errors during writing return 500 Internal Server Error
+- Successful uploads return 200 OK with plain text confirmation message
+
+**Security Considerations**:
+- **Directory Traversal Protection**: File access is restricted to the configured root directory using path validation. When a request is made, the server constructs the full file path by joining the root directory with the requested path. If the resulting path doesn't start with the root directory (indicating an attempt to access files outside the allowed area using relative path sequences like `../`), the request is blocked with HTTP 403 Forbidden
+- No file name sanitization is performed
+- No file type restrictions are enforced (all file types allowed)
+- No upload size limits are implemented (limited by system memory and disk space)
+
+**Client-Server Communication**:
+- **File Upload**: Request body is received in chunks and buffered entirely before processing, followed by a simple text response
+- **File Serving**: Uses streaming responses with `fs.createReadStream().pipe()` for efficient file transfer in chunks
+- Upload response is plain text: "Files uploaded successfully"
+- No detailed metadata about uploaded files is returned
+- Error responses contain simple text messages
+
+**Directory Synchronization**:
+- Automatic page refresh occurs after successful upload using `location.reload()`
+- Users see newly uploaded files immediately without manual navigation
+- File metadata is updated by the operating system automatically
+
 ### Logging
 All HTTP requests are logged to STDOUT in the format:
 ```
