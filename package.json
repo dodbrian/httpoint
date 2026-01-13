@@ -11,9 +11,11 @@
     "httpoint": "dist/serve.js"
   },
   "scripts": {
-    "build": "tsc && node scripts/copy-assets.js",
+    "build": "npm run lint && tsc && node scripts/copy-assets.js",
     "start": "node dist/serve.js",
     "dev": "npm run build && node dist/serve.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -32,6 +34,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
+    "eslint": "^9.39.2",
     "typescript": "^5.7.2"
   }
 }
