@@ -7,14 +7,17 @@ HTTPoint is a lightweight Node.js CLI application that serves static files via H
 ## Commands
 
 ### Build
-No build step required. The application runs directly with Node.js.
+```bash
+npm run build
+```
+Builds TypeScript to JavaScript, runs lint, and copies static assets to dist/.
 
 ### Running
 ```bash
 # Run the application
 npm start
 # or
-node src/serve.js [options]
+node dist/serve.js [options]
 
 # Options
 --port <number>       Port to listen on (default: 3000)
@@ -24,7 +27,16 @@ node src/serve.js [options]
 ```
 
 ### Lint
-No linting framework is configured. Maintain consistency with existing code style.
+```bash
+npm run lint
+```
+ESLint with TypeScript support. Lint runs automatically during build.
+
+### Lint Fix
+```bash
+npm run lint:fix
+```
+Auto-fixes linting issues where possible.
 
 ### Test
 No test framework is currently set up. When implementing tests, choose an appropriate framework and update package.json scripts accordingly.
@@ -37,7 +49,7 @@ Once a test framework is implemented, refer to its documentation for running sin
 ## Code Style Guidelines
 
 ### File Structure
-- Main entry point: `src/serve.js`
+- Main entry point: `src/serve.ts`
 - Static assets: `src/_httpoint_assets/` (CSS, JS)
 - Documentation: `docs/spec.md`
 
