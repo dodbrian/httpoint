@@ -131,11 +131,11 @@ function parseMultipart(body: Buffer, boundary: string): MultipartPart[] {
       }
     }
 
-    const part = body.slice(partStart, partEnd);
+    const part = body.subarray(partStart, partEnd);
     const headerEnd = part.indexOf('\r\n\r\n');
     if (headerEnd !== -1) {
-      const headers = part.slice(0, headerEnd).toString();
-      const data = part.slice(headerEnd + 4);
+      const headers = part.subarray(0, headerEnd).toString();
+      const data = part.subarray(headerEnd + 4);
       const headerLines = headers.split('\r\n');
       const contentDisposition = headerLines.find((line: string) => line.startsWith('Content-Disposition'));
       if (contentDisposition) {
