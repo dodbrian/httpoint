@@ -304,8 +304,8 @@ function createServer(config: Config): http.Server {
         const readStream = fs.createReadStream(filePath);
         readStream.pipe(res);
       }
-    } catch (err: any) {
-      if (err.code === 'ENOENT') {
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
         res.statusCode = 404;
         res.setHeader('Content-Type', 'text/plain');
         res.end('404 Not Found');
