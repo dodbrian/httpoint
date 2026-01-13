@@ -193,6 +193,7 @@ The server automatically detects and displays the local IP address, and binds to
 - **Dependencies**: None (uses only Node.js built-in modules)
 - **Modules**: `http`, `fs`, `path`, `url`
 - **Cross-platform**: Compatible with Windows, macOS, and Linux
+- **Language**: TypeScript (compiled to JavaScript for distribution)
 
 ## Author
 Denis Zimin
