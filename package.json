@@ -6,12 +6,14 @@
     "type": "git",
     "url": "git+https://github.com/dodbrian/httpoint.git"
   },
-  "main": "src/serve.js",
+  "main": "dist/serve.js",
   "bin": {
-    "httpoint": "src/serve.js"
+    "httpoint": "dist/serve.js"
   },
   "scripts": {
-    "start": "node src/serve.js",
+    "build": "tsc && node scripts/copy-assets.js",
+    "start": "node dist/serve.js",
+    "dev": "npm run build && node dist/serve.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -27,5 +29,9 @@
   "license": "MIT",
   "engines": {
     "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
   }
 }
