@@ -195,8 +195,35 @@ The server automatically detects and displays the local IP address, and binds to
 - **Cross-platform**: Compatible with Windows, macOS, and Linux
 - **Language**: TypeScript (compiled to JavaScript for distribution)
 
+## Architecture
+
+The codebase is organized into modular components with clear separation of concerns:
+
+- **Config Module** (`config/config.ts`): Handles configuration parsing and validation from CLI arguments and environment variables
+- **Context Module** (`context/context.ts`): Defines the Context type used throughout the middleware pipeline and provides a factory function
+- **Middleware Pipeline** (`middleware/`): Chain of functions that process requests sequentially:
+  - `body-collector.ts`: Buffers request body into memory
+  - `security.ts`: Validates file paths to prevent directory traversal attacks
+  - `logger.ts`: Logs requests and responses with configurable debug output
+  - `router.ts`: Dispatches requests to appropriate handlers based on path
+- **Handlers** (`handlers/`): Route-specific request processors:
+  - `asset-handler.ts`: Serves static CSS/JS assets
+  - `directory-handler.ts`: Generates directory listings and handles file uploads
+  - `file-handler.ts`: Serves static files
+- **Utils** (`utils/`): Pure utility functions:
+  - `mime.ts`: MIME type detection
+  - `format.ts`: File size formatting
+  - `multipart.ts`: Multipart form-data parser
+  - `network.ts`: Local IP detection
+- **Views** (`views/`): HTML template generation for UI elements
+- **Server** (`server.ts`): HTTP server orchestrator that assembles the middleware pipeline
+
+The middleware pipeline processes each request in order: body collection → security validation → logging → routing → handler execution. This architecture allows easy addition or removal of middleware components and keeps handlers focused on their specific responsibilities.
+
+For detailed implementation specifications, see `docs/modularization-plan.md`.
+
 ## Author
 Denis Zimin
 
 ## License
-MIT © 2025
+MIT © 2025-2026
