@@ -143,10 +143,47 @@ curl http://localhost:3000/
 - **Network Detection**: Automatically finds non-internal IPv4 address for LAN access
 - **Graceful Shutdown**: SIGINT handler closes server properly
 
+## Working with Tickets
+
+### Ticket Structure
+Tickets are stored in `docs/tickets/` with the following naming convention:
+- `phase{number}-{order}-{description}.md`
+- Example: `phase1-001-mime-utility.md`
+
+### Ticket Workflow
+1. **Read the ticket**: Understand the scope, tasks, and acceptance criteria
+2. **Implement changes**: Follow the tasks listed in the ticket
+3. **Validate**: Run build and lint commands after each ticket
+4. **Test manually**: Ensure functionality is preserved
+5. **Mark complete**: Update ticket status if tracking progress
+
+### Implementation Phases
+- **Phase 1**: Utils and Views (no app dependencies)
+- **Phase 2**: Config and Context (foundational types)
+- **Phase 3**: Middleware (independent, testable)
+- **Phase 4**: Handlers (use utils, no middleware dependencies)
+- **Phase 5**: Router and Server (orchestration)
+- **Phase 6**: Entry Point (CLI refactoring)
+
+### Phase 1 Specific Notes
+- Execute tickets in numerical order
+- Tickets 1-4 have no dependencies
+- Ticket 5 depends on ticket 2 (format utility)
+- Each ticket should preserve all existing functionality
+
+### Validation Requirements
+After completing any ticket:
+```bash
+npm run build    # TypeScript compilation
+npm run lint     # Code style verification
+npm start        # Manual functionality test
+```
+
 ## When Making Changes
 
-1. Read the relevant code sections in `src/serve.js`
-2. Update `docs/spec.md` with any behavior changes
-3. Maintain consistency with existing code style
-4. Test manually with different file types and directory structures
-5. Verify security checks (directory traversal protection) remain intact
+1. **Check for tickets**: Look in `docs/tickets/` for related work
+2. **Read the relevant code sections**: Understand current implementation
+3. **Update `docs/spec.md`**: Document any behavior changes
+4. **Maintain code style**: Follow existing conventions
+5. **Test manually**: Verify with different file types and directory structures
+6. **Validate security**: Ensure directory traversal protection remains intact
