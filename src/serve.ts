@@ -8,6 +8,7 @@ import { version } from '../package.json';
 import { getMimeType } from './utils/mime';
 import { formatFileSize } from './utils/format';
 import { parseMultipart } from './utils/multipart';
+import { getLocalIP } from './utils/network';
 
 interface Config {
   port: number | string;
@@ -15,11 +16,7 @@ interface Config {
   debug: boolean;
 }
 
-interface NetworkAddress {
-  family: string;
-  internal: boolean;
-  address: string;
-}
+
 
 function printHelp(): void {
   console.log(`HTTPoint v${version} - Simple HTTP file server`);
@@ -252,20 +249,7 @@ function main(): void {
   const server = createServer(config);
 
   server.listen(Number(config.port), '0.0.0.0', () => {
-    const os = require('os');
-    const networkInterfaces = os.networkInterfaces() as Record<string, NetworkAddress[]>;
-    let localIP = 'localhost';
-
-    for (const interfaceName in networkInterfaces) {
-      const addresses = networkInterfaces[interfaceName];
-      for (const address of addresses) {
-        if (address.family === 'IPv4' && !address.internal) {
-          localIP = address.address;
-          break;
-        }
-      }
-      if (localIP !== 'localhost') break;
-    }
+    const localIP = getLocalIP();
 
     console.log(`HTTPoint server running on:`);
     console.log(`  Local:   http://localhost:${config.port}/`);
