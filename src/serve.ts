@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import { version } from '../package.json';
+import { getMimeType } from './utils/mime';
 
 interface Config {
   port: number | string;
@@ -80,25 +81,7 @@ function parseArgs(): Config {
   return config;
 }
 
-function getMimeType(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.txt': 'text/plain',
-    '.pdf': 'application/pdf',
-    '.zip': 'application/zip'
-  };
 
-  return mimeTypes[ext] || 'application/octet-stream';
-}
 
 function formatFileSize(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
