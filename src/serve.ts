@@ -6,9 +6,9 @@ import path from 'path';
 import url from 'url';
 import { version } from '../package.json';
 import { getMimeType } from './utils/mime';
-import { formatFileSize } from './utils/format';
 import { parseMultipart } from './utils/multipart';
 import { getLocalIP } from './utils/network';
+import { generateDirectoryListing } from './views/directory-listing';
 
 interface Config {
   port: number | string;
@@ -77,66 +77,7 @@ function parseArgs(): Config {
 
 
 
-function generateDirectoryListing(dirPath: string, requestPath: string): string {
-  const files = fs.readdirSync(dirPath);
-  const items: string[] = [];
 
-  if (requestPath !== '/') {
-    const parentPath = path.dirname(requestPath);
-    const parentHref = parentPath === '/' ? '/' : parentPath;
-    items.push(`<li><a href="${parentHref}">📁 ../</a></li>`);
-  }
-
-  const directories: string[] = [];
-  const regularFiles: string[] = [];
-
-  files.forEach((file: string) => {
-    const filePath = path.join(dirPath, file);
-    const stat = fs.statSync(filePath);
-    const encodedFile = encodeURIComponent(file);
-    const href = path.posix.join(requestPath, encodedFile);
-
-    if (stat.isDirectory()) {
-      directories.push(`<li><a href="${href}/">📁 ${file}/</a></li>`);
-    } else {
-      const size = formatFileSize(stat.size);
-      regularFiles.push(`<li><a href="${href}">📄 ${file}</a> <span style="color: #666;">(${size})</span></li>`);
-    }
-  });
-
-  const allItems = [...items, ...directories, ...regularFiles];
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Directory listing for ${requestPath}</title>
-    <link rel="stylesheet" href="/_httpoint_assets/styles.css">
-</head>
-<body>
-    <div class="header">
-        <h1>Directory listing for ${requestPath}</h1>
-    </div>
-    <ul>
-        ${allItems.join('\n        ')}
-    </ul>
-    <button class="upload-btn" id="uploadBtn">+</button>
-    <div class="upload-overlay" id="uploadOverlay">
-        <div class="upload-modal">
-            <button class="close-btn" id="closeBtn">&times;</button>
-            <h2>Upload Files</h2>
-            <div class="drop-area" id="dropArea">Drag & drop files here or click to browse</div>
-            <input type="file" class="file-input" id="fileInput" multiple style="display: none;">
-            <div class="progress" id="progress">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-        </div>
-    </div>
-    <script src="/_httpoint_assets/script.js"></script>
-</body>
-</html>`;
-}
 
 function createServer(config: Config): http.Server {
   const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
