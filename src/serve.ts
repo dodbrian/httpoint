@@ -9,12 +9,7 @@ import { getMimeType } from './utils/mime';
 import { parseMultipart } from './utils/multipart';
 import { getLocalIP } from './utils/network';
 import { generateDirectoryListing } from './views/directory-listing';
-
-interface Config {
-  port: number | string;
-  root: string;
-  debug: boolean;
-}
+import { Config } from './config/types';
 
 
 
