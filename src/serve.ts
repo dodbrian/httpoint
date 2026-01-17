@@ -11,14 +11,6 @@ import { Config, parseArgs, validateConfig } from './config';
 import { createRequestContext, RequestContext } from './context/request';
 
 
-
-
-
-
-
-
-
-
 function createServer(config: Config): http.Server {
   const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
     let context: RequestContext | undefined;

@@ -47,6 +47,7 @@ node dist/serve.js [options]
 - **Dependencies**: Node.js built-in modules only (`http`, `fs`, `path`, `url`, `os`)
 - **Entry point**: `src/serve.ts` with shebang `#!/usr/bin/env node`
 - **Assets**: `src/_httpoint_assets/` (CSS, JS)
+- **Line spacing**: maximal 2 empty lines
 
 ### Naming Conventions
 - Functions/Variables: camelCase (`parseArgs`, `getMimeType`, `config`)
