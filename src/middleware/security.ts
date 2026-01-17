@@ -20,7 +20,7 @@ export async function security(context: RequestContext): Promise<void> {
   }
 
   const normalizedRequestPath = path.normalize(context.requestPath);
-  if (normalizedRequestPath.includes('..') || path.isAbsolute(normalizedRequestPath)) {
+  if (normalizedRequestPath.includes('..')) {
     throw new SecurityViolationError(
       `Security violation: invalid path sequence detected in "${context.requestPath}"`
     );
