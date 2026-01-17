@@ -3,12 +3,12 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import { getMimeType } from './utils/mime';
 import { parseMultipart } from './utils/multipart';
 import { getLocalIP } from './utils/network';
 import { generateDirectoryListing } from './views/directory-listing';
 import { Config, parseArgs, validateConfig } from './config';
+import { createRequestContext, RequestContext } from './context/request';
 
 
 
@@ -21,37 +21,21 @@ import { Config, parseArgs, validateConfig } from './config';
 
 function createServer(config: Config): http.Server {
   const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
-    const parsedUrl = url.parse(req.url!, true);
-    const requestPath = decodeURIComponent(parsedUrl.pathname!);
-    const filePath = path.join(config.root, requestPath);
-
-    const body = await new Promise<Buffer>((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      req.on('data', (chunk: Buffer) => chunks.push(chunk));
-      req.on('end', () => resolve(Buffer.concat(chunks)));
-      req.on('error', reject);
-    });
-
-    if (req.method === 'POST' && config.debug) {
-      console.log(`POST body for ${requestPath}:\n`, body.toString());
-    }
-
-    if (!filePath.startsWith(config.root)) {
-      res.statusCode = 403;
-      res.end('Forbidden');
-      console.log(`${req.method} ${requestPath} 403`);
-      return;
-    }
-
+    let context: RequestContext | undefined;
     try {
-      if (requestPath.startsWith('/_httpoint_assets/')) {
-        const publicFilePath = path.join(__dirname, '_httpoint_assets', requestPath.substring(17));
+      context = await createRequestContext(req, config);
+
+      if (req.method === 'POST' && config.debug) {
+        console.log(`POST body for ${context.requestPath}:\n`, context.body.toString());
+      }
+      if (context.requestPath.startsWith('/_httpoint_assets/')) {
+        const publicFilePath = path.join(__dirname, '_httpoint_assets', context.requestPath.substring(17));
         const mimeType = getMimeType(publicFilePath);
         res.setHeader('Content-Type', mimeType);
         res.statusCode = 200;
 
         if (config.debug) {
-          console.log(`${req.method} ${requestPath} 200`);
+          console.log(`${req.method} ${context.requestPath} 200`);
         }
 
         const readStream = fs.createReadStream(publicFilePath);
@@ -59,7 +43,7 @@ function createServer(config: Config): http.Server {
         return;
       }
 
-      const stats = await fs.promises.stat(filePath);
+      const stats = await fs.promises.stat(context.filePath);
       if (stats.isDirectory()) {
         if (req.method === 'POST') {
           const contentType = req.headers['content-type'];
@@ -67,51 +51,55 @@ function createServer(config: Config): http.Server {
             const boundaryMatch = contentType.match(/boundary=(.+)/);
             if (boundaryMatch) {
               const boundary = boundaryMatch[1];
-              const parts = parseMultipart(body, boundary);
+              const parts = parseMultipart(context.body, boundary);
               for (const part of parts) {
-                const uploadPath = path.join(filePath, part.filename);
+                const uploadPath = path.join(context.filePath, part.filename);
                 await fs.promises.writeFile(uploadPath, part.data);
               }
               res.statusCode = 200;
               res.setHeader('Content-Type', 'text/plain');
               res.end('Files uploaded successfully');
-              console.log(`${req.method} ${requestPath} 200`);
+              console.log(`${req.method} ${context.requestPath} 200`);
             } else {
               res.statusCode = 400;
               res.end('Invalid boundary');
-              console.log(`${req.method} ${requestPath} 400`);
+              console.log(`${req.method} ${context.requestPath} 400`);
             }
           } else {
             res.statusCode = 400;
             res.end('Invalid content type');
-            console.log(`${req.method} ${requestPath} 400`);
+            console.log(`${req.method} ${context.requestPath} 400`);
           }
         } else {
-          const html = generateDirectoryListing(filePath, requestPath);
+          const html = generateDirectoryListing(context.filePath, context.requestPath);
           res.statusCode = 200;
           res.setHeader('Content-Type', 'text/html');
           res.end(html);
-          console.log(`${req.method} ${requestPath} 200`);
+          console.log(`${req.method} ${context.requestPath} 200`);
         }
       } else {
-        const mimeType = getMimeType(filePath);
+        const mimeType = getMimeType(context.filePath);
         res.setHeader('Content-Type', mimeType);
         res.statusCode = 200;
-        console.log(`${req.method} ${requestPath} 200`);
-        const readStream = fs.createReadStream(filePath);
+        console.log(`${req.method} ${context.requestPath} 200`);
+        const readStream = fs.createReadStream(context.filePath);
         readStream.pipe(res);
       }
     } catch (err: unknown) {
-      if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+      if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'ENOENT') {
         res.statusCode = 404;
         res.setHeader('Content-Type', 'text/plain');
         res.end('404 Not Found');
-        console.log(`${req.method} ${requestPath} 404`);
+        console.log(`${req.method} ${context?.requestPath || 'unknown'} 404`);
+      } else if (err instanceof Error && err.message === 'Path validation failed - potential directory traversal') {
+        res.statusCode = 403;
+        res.end('Forbidden');
+        console.log(`${req.method} ${context?.requestPath || 'unknown'} 403`);
       } else {
         res.statusCode = 500;
         res.setHeader('Content-Type', 'text/plain');
         res.end('Internal Server Error');
-        console.log(`${req.method} ${requestPath} 500`);
+        console.log(`${req.method} ${context?.requestPath || 'unknown'} 500`);
       }
     }
   });

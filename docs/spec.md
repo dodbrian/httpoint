@@ -199,8 +199,8 @@ The server automatically detects and displays the local IP address, and binds to
 
 The codebase is organized into modular components with clear separation of concerns:
 
-- **Config Module** (`config/config.ts`): Handles configuration parsing and validation from CLI arguments and environment variables
-- **Context Module** (`context/context.ts`): Defines the Context type used throughout the middleware pipeline and provides a factory function
+- **Config Module** (`config/`): Handles configuration parsing and validation from CLI arguments and environment variables
+- **Context Module** (`context/request.ts`): Defines the RequestContext interface and provides a factory function to encapsulate request-specific data and utilities including URL parsing, body collection, and path resolution with security validation
 - **Middleware Pipeline** (`middleware/`): Chain of functions that process requests sequentially:
   - `body-collector.ts`: Buffers request body into memory
   - `security.ts`: Validates file paths to prevent directory traversal attacks
@@ -216,7 +216,7 @@ The codebase is organized into modular components with clear separation of conce
   - `multipart.ts`: Multipart form-data parser
   - `network.ts`: Local IP detection
 - **Views** (`views/`): HTML template generation for UI elements
-- **Server** (`server.ts`): HTTP server orchestrator that assembles the middleware pipeline
+- **Server** (`serve.ts`): HTTP server orchestrator that uses the request context to handle incoming requests
 
 The middleware pipeline processes each request in order: body collection → security validation → logging → routing → handler execution. This architecture allows easy addition or removal of middleware components and keeps handlers focused on their specific responsibilities.
 
