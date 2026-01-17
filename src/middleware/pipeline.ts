@@ -1,9 +1,11 @@
 import http from 'http';
 import { bodyCollector } from './body-collector';
+import { security } from './security';
 import { logger } from './logger';
 import { router, HandlerResult } from './router';
 import { Config } from '../config';
 import { SecurityViolationError } from './security';
+import { createRequestContext } from '../context/request';
 
 export async function executePipeline(
   req: http.IncomingMessage,
@@ -13,11 +15,11 @@ export async function executePipeline(
   let statusCode = 200;
 
   try {
-    // Create request context first (security validation happens here)
-    const { createRequestContext } = require('../context/request');
+    // Create request context first (basic validation happens here)
     const context = await createRequestContext(req, res, config);
 
-    // Execute middleware in sequence: body collector → router → logger
+    // Execute middleware in sequence: security → body collector → router → logger
+    await security(context);
     await bodyCollector(context);
 
     // Route the request to appropriate handler
@@ -30,7 +32,7 @@ export async function executePipeline(
     } else if (result.statusCode) {
       // Direct response from router
       statusCode = result.statusCode;
-      context.res.statusCode = statusCode;
+      context.res.writeHead(statusCode, { 'Content-Type': 'text/plain' });
       if (result.message) {
         context.res.end(result.message);
       } else {
@@ -62,13 +64,17 @@ export async function executePipeline(
       console.error('Pipeline error:', error.message);
     }
 
-    // Create minimal context for logging if we can
-    try {
-      const { createRequestContext } = require('../context/request');
-      const fallbackContext = await createRequestContext(req, res, config);
-      await logger(fallbackContext, statusCode);
-    } catch {
-      // If we can't even create a context for logging, just log the status
+    // Create minimal context for logging if we can (but not for security errors)
+    if (!(error instanceof SecurityViolationError)) {
+      try {
+        const fallbackContext = await createRequestContext(req, res, config);
+        await logger(fallbackContext, statusCode);
+      } catch {
+        // If we can't even create a context for logging, just log the status
+        console.log(`${req.method} ${req.url || 'unknown'} ${statusCode}`);
+      }
+    } else {
+      // For security errors, just log the status without creating context
       console.log(`${req.method} ${req.url || 'unknown'} ${statusCode}`);
     }
   }
