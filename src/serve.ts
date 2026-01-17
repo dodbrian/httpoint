@@ -10,6 +10,7 @@ import { generateDirectoryListing } from './views/directory-listing';
 import { Config, parseArgs, validateConfig } from './config';
 import { createRequestContext, RequestContext } from './context/request';
 import { bodyCollector } from './middleware/body-collector';
+import { SecurityViolationError } from './middleware/security';
 
 
 function createServer(config: Config): http.Server {
@@ -91,7 +92,7 @@ function createServer(config: Config): http.Server {
         res.setHeader('Content-Type', 'text/plain');
         res.end('404 Not Found');
         console.log(`${req.method} ${context?.requestPath || 'unknown'} 404`);
-      } else if (err instanceof Error && err.message === 'Path validation failed - potential directory traversal') {
+      } else if (err instanceof SecurityViolationError) {
         res.statusCode = 403;
         res.end('Forbidden');
         console.log(`${req.method} ${context?.requestPath || 'unknown'} 403`);

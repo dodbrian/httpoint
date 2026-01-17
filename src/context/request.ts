@@ -9,6 +9,7 @@ export interface RequestContext {
   filePath: string;
   body: Buffer | undefined;
   parsedUrl: url.UrlWithParsedQuery;
+  config: Config;
 }
 
 function resolvePath(requestPath: string, config: Config): string {
@@ -41,6 +42,7 @@ export async function createRequestContext(req: http.IncomingMessage, config: Co
     requestPath,
     filePath,
     body: undefined,
-    parsedUrl
+    parsedUrl,
+    config
   };
 }

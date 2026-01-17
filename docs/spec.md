@@ -200,10 +200,10 @@ The server automatically detects and displays the local IP address, and binds to
 The codebase is organized into modular components with clear separation of concerns:
 
 - **Config Module** (`config/`): Handles configuration parsing and validation from CLI arguments and environment variables
-- **Context Module** (`context/request.ts`): Defines the RequestContext interface and provides a factory function to encapsulate request-specific data and utilities including URL parsing and path resolution with security validation
+- **Context Module** (`context/request.ts`): Defines the RequestContext interface with `req`, `requestPath`, `filePath`, `body`, `parsedUrl`, and `config` properties. Provides a factory function `createRequestContext()` to encapsulate request-specific data and utilities including URL parsing and path resolution with security validation
 - **Middleware Pipeline** (`middleware/`): Chain of functions that process requests sequentially:
   - `body-collector.ts`: Buffers request body into memory
-  - `security.ts`: Validates file paths to prevent directory traversal attacks
+  - `security.ts`: Validates file paths using `path.resolve()` and `path.normalize()` to prevent directory traversal attacks. Detects `..` sequences and absolute paths, throwing `SecurityViolationError` with descriptive messages for blocked attempts
   - `logger.ts`: Logs requests and responses with configurable debug output
   - `router.ts`: Dispatches requests to appropriate handlers based on path
 - **Handlers** (`handlers/`): Route-specific request processors:
