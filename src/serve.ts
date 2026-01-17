@@ -3,61 +3,12 @@
 import http from 'http';
 import { getLocalIP } from './utils/network';
 import { Config, parseArgs, validateConfig } from './config';
-import { createRequestContext, RequestContext } from './context/request';
-import { bodyCollector } from './middleware/body-collector';
-import { SecurityViolationError } from './middleware/security';
-import { router } from './middleware/router';
-import { logger } from './middleware/logger';
+import { executePipeline } from './middleware/pipeline';
 
 
 function createServer(config: Config): http.Server {
   const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
-    let context: RequestContext | undefined;
-    try {
-      context = await createRequestContext(req, res, config);
-      await bodyCollector(context);
-
-      // Route the request using the router middleware
-      const result = await router(context);
-      
-      if (result.handler) {
-        await result.handler(context);
-        // Log the request after handler execution
-        await logger(context, context.res.statusCode);
-      } else if (result.statusCode) {
-        context.res.statusCode = result.statusCode;
-        if (result.message) {
-          context.res.setHeader('Content-Type', 'text/plain');
-          context.res.end(result.message);
-        } else {
-          context.res.end();
-        }
-        // Log the request
-        await logger(context, result.statusCode);
-      }
-    } catch (err: unknown) {
-      let statusCode = 500;
-      let message = 'Internal Server Error';
-
-      if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-        statusCode = 404;
-        message = 'Not Found';
-      } else if (err instanceof SecurityViolationError) {
-        statusCode = 403;
-        message = 'Forbidden';
-      }
-
-      res.statusCode = statusCode;
-      res.setHeader('Content-Type', 'text/plain');
-      res.end(message);
-      
-      // Log the error
-      if (context) {
-        await logger(context, statusCode);
-      } else {
-        console.log(`${req.method} unknown ${statusCode}`);
-      }
-    }
+    await executePipeline(req, res, config);
   });
 
   return server;
