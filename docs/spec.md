@@ -202,6 +202,7 @@ The codebase is organized into modular components with clear separation of conce
 - **Config Module** (`config/`): Handles configuration parsing and validation from CLI arguments and environment variables
 - **Context Module** (`context/request.ts`): Defines the RequestContext interface with `req`, `requestPath`, `filePath`, `body`, `parsedUrl`, and `config` properties. Provides a factory function `createRequestContext()` to encapsulate request-specific data and utilities including URL parsing and path resolution with security validation
 - **Middleware Pipeline** (`middleware/`): Chain of functions that process requests sequentially:
+  - `pipeline.ts`: Orchestrator that executes middleware in correct order (body collector → router → logger) and handles error propagation and early termination
   - `body-collector.ts`: Buffers request body into memory
   - `security.ts`: Validates file paths using `path.resolve()` and `path.normalize()` to prevent directory traversal attacks. Detects `..` sequences and absolute paths, throwing `SecurityViolationError` with descriptive messages for blocked attempts
   - `logger.ts`: Logs requests and responses with configurable debug output
@@ -218,7 +219,7 @@ The codebase is organized into modular components with clear separation of conce
 - **Views** (`views/`): HTML template generation for UI elements
 - **Server** (`serve.ts`): HTTP server orchestrator that uses the request context to handle incoming requests
 
-The middleware pipeline processes each request in order: body collection → security validation → routing → handler execution → logging. This architecture allows easy addition or removal of middleware components and keeps handlers focused on their specific responsibilities.
+The middleware pipeline processes each request in order: security validation → body collection → routing → handler execution → logging. This architecture allows easy addition or removal of middleware components and keeps handlers focused on their specific responsibilities.
 
 The router middleware (`src/middleware/router.ts`) is fully integrated into the request pipeline in `serve.ts`, replacing the previous monolithic handler logic. It dispatches requests to appropriate handlers based on URL patterns, HTTP methods, and path types (asset, file, directory) using the `HandlerResult` interface for consistent response handling.
 

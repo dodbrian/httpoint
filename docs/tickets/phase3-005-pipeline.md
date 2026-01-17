@@ -4,7 +4,7 @@
 Create middleware pipeline orchestrator to execute middleware in correct order and handle error propagation.
 
 ## Acceptance Criteria
-- Executes middleware in sequence: body collector → security → logger → router
+- Executes middleware in sequence: security → body collector → logger → router
 - Handles async middleware execution properly
 - Provides error handling and propagation
 - Maintains request context throughout pipeline
