@@ -10,6 +10,7 @@ import { getLocalIP } from './utils/network';
 import { generateDirectoryListing } from './views/directory-listing';
 import { Config } from './config/types';
 import { parseArgs } from './config/parser';
+import { validateConfig } from './config/validator';
 
 
 
@@ -123,10 +124,7 @@ function createServer(config: Config): http.Server {
 function main(): void {
   const config = parseArgs();
 
-  if (!fs.existsSync(config.root)) {
-    console.error(`Error: Directory '${config.root}' does not exist`);
-    process.exit(1);
-  }
+  validateConfig(config);
 
   const server = createServer(config);
 
