@@ -1,106 +1,61 @@
 #!/usr/bin/env node
 
 import http from 'http';
-import fs from 'fs';
-import path from 'path';
-import { getMimeType } from './utils/mime';
-import { parseMultipart } from './utils/multipart';
 import { getLocalIP } from './utils/network';
-import { generateDirectoryListing } from './views/directory-listing';
 import { Config, parseArgs, validateConfig } from './config';
 import { createRequestContext, RequestContext } from './context/request';
 import { bodyCollector } from './middleware/body-collector';
 import { SecurityViolationError } from './middleware/security';
+import { router } from './middleware/router';
+import { logger } from './middleware/logger';
 
 
 function createServer(config: Config): http.Server {
   const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
     let context: RequestContext | undefined;
     try {
-      context = await createRequestContext(req, config);
+      context = await createRequestContext(req, res, config);
       await bodyCollector(context);
 
-      if (req.method === 'POST' && config.debug) {
-        console.log(`POST body for ${context.requestPath}:\n`, context.body?.toString());
-      }
-      if (context.requestPath.startsWith('/_httpoint_assets/')) {
-        const publicFilePath = path.join(__dirname, '_httpoint_assets', context.requestPath.substring(17));
-        const mimeType = getMimeType(publicFilePath);
-        res.setHeader('Content-Type', mimeType);
-        res.statusCode = 200;
-
-        if (config.debug) {
-          console.log(`${req.method} ${context.requestPath} 200`);
-        }
-
-        const readStream = fs.createReadStream(publicFilePath);
-        readStream.pipe(res);
-        return;
-      }
-
-      const stats = await fs.promises.stat(context.filePath);
-      if (stats.isDirectory()) {
-        if (req.method === 'POST') {
-          const contentType = req.headers['content-type'];
-          if (contentType && contentType.startsWith('multipart/form-data')) {
-            const boundaryMatch = contentType.match(/boundary=(.+)/);
-            if (boundaryMatch) {
-              const boundary = boundaryMatch[1];
-              if (!context.body) {
-                res.statusCode = 400;
-                res.end('Invalid request body');
-                console.log(`${req.method} ${context.requestPath} 400`);
-                return;
-              }
-              const parts = parseMultipart(context.body, boundary);
-              for (const part of parts) {
-                const uploadPath = path.join(context.filePath, part.filename);
-                await fs.promises.writeFile(uploadPath, part.data);
-              }
-              res.statusCode = 200;
-              res.setHeader('Content-Type', 'text/plain');
-              res.end('Files uploaded successfully');
-              console.log(`${req.method} ${context.requestPath} 200`);
-            } else {
-              res.statusCode = 400;
-              res.end('Invalid boundary');
-              console.log(`${req.method} ${context.requestPath} 400`);
-            }
-          } else {
-            res.statusCode = 400;
-            res.end('Invalid content type');
-            console.log(`${req.method} ${context.requestPath} 400`);
-          }
+      // Route the request using the router middleware
+      const result = await router(context);
+      
+      if (result.handler) {
+        await result.handler(context);
+        // Log the request after handler execution
+        await logger(context, context.res.statusCode);
+      } else if (result.statusCode) {
+        context.res.statusCode = result.statusCode;
+        if (result.message) {
+          context.res.setHeader('Content-Type', 'text/plain');
+          context.res.end(result.message);
         } else {
-          const html = generateDirectoryListing(context.filePath, context.requestPath);
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'text/html');
-          res.end(html);
-          console.log(`${req.method} ${context.requestPath} 200`);
+          context.res.end();
         }
-      } else {
-        const mimeType = getMimeType(context.filePath);
-        res.setHeader('Content-Type', mimeType);
-        res.statusCode = 200;
-        console.log(`${req.method} ${context.requestPath} 200`);
-        const readStream = fs.createReadStream(context.filePath);
-        readStream.pipe(res);
+        // Log the request
+        await logger(context, result.statusCode);
       }
     } catch (err: unknown) {
+      let statusCode = 500;
+      let message = 'Internal Server Error';
+
       if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-        res.statusCode = 404;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('404 Not Found');
-        console.log(`${req.method} ${context?.requestPath || 'unknown'} 404`);
+        statusCode = 404;
+        message = 'Not Found';
       } else if (err instanceof SecurityViolationError) {
-        res.statusCode = 403;
-        res.end('Forbidden');
-        console.log(`${req.method} ${context?.requestPath || 'unknown'} 403`);
+        statusCode = 403;
+        message = 'Forbidden';
+      }
+
+      res.statusCode = statusCode;
+      res.setHeader('Content-Type', 'text/plain');
+      res.end(message);
+      
+      // Log the error
+      if (context) {
+        await logger(context, statusCode);
       } else {
-        res.statusCode = 500;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('Internal Server Error');
-        console.log(`${req.method} ${context?.requestPath || 'unknown'} 500`);
+        console.log(`${req.method} unknown ${statusCode}`);
       }
     }
   });

@@ -5,6 +5,7 @@ import { Config } from '../config';
 
 export interface RequestContext {
   req: http.IncomingMessage;
+  res: http.ServerResponse;
   requestPath: string;
   filePath: string;
   body: Buffer | undefined;
@@ -20,7 +21,7 @@ function validatePath(filePath: string, config: Config): boolean {
   return filePath.startsWith(config.root);
 }
 
-export async function createRequestContext(req: http.IncomingMessage, config: Config): Promise<RequestContext> {
+export async function createRequestContext(req: http.IncomingMessage, res: http.ServerResponse, config: Config): Promise<RequestContext> {
   if (!req.url) {
     throw new Error('Request URL is required');
   }
@@ -34,11 +35,13 @@ export async function createRequestContext(req: http.IncomingMessage, config: Co
   const filePath = resolvePath(requestPath, config);
 
   if (!validatePath(filePath, config)) {
-    throw new Error('Path validation failed - potential directory traversal');
+    const { SecurityViolationError } = require('../middleware/security');
+    throw new SecurityViolationError('Path validation failed - potential directory traversal');
   }
 
   return {
     req,
+    res,
     requestPath,
     filePath,
     body: undefined,

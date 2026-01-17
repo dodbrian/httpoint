@@ -205,7 +205,7 @@ The codebase is organized into modular components with clear separation of conce
   - `body-collector.ts`: Buffers request body into memory
   - `security.ts`: Validates file paths using `path.resolve()` and `path.normalize()` to prevent directory traversal attacks. Detects `..` sequences and absolute paths, throwing `SecurityViolationError` with descriptive messages for blocked attempts
   - `logger.ts`: Logs requests and responses with configurable debug output
-  - `router.ts`: Dispatches requests to appropriate handlers based on path
+  - `router.ts`: Dispatches requests to appropriate handlers based on URL patterns, HTTP methods, and path types (asset, file, directory)
 - **Handlers** (`handlers/`): Route-specific request processors:
   - `asset-handler.ts`: Serves static CSS/JS assets
   - `directory-handler.ts`: Generates directory listings and handles file uploads
@@ -218,7 +218,22 @@ The codebase is organized into modular components with clear separation of conce
 - **Views** (`views/`): HTML template generation for UI elements
 - **Server** (`serve.ts`): HTTP server orchestrator that uses the request context to handle incoming requests
 
-The middleware pipeline processes each request in order: body collection → security validation → logging → routing → handler execution. This architecture allows easy addition or removal of middleware components and keeps handlers focused on their specific responsibilities.
+The middleware pipeline processes each request in order: body collection → security validation → routing → handler execution → logging. This architecture allows easy addition or removal of middleware components and keeps handlers focused on their specific responsibilities.
+
+The router middleware (`src/middleware/router.ts`) is fully integrated into the request pipeline in `serve.ts`, replacing the previous monolithic handler logic. It dispatches requests to appropriate handlers based on URL patterns, HTTP methods, and path types (asset, file, directory) using the `HandlerResult` interface for consistent response handling.
+
+### HandlerResult Interface
+The router middleware returns a `HandlerResult` object with the following structure:
+```typescript
+interface HandlerResult {
+  handler?: (context: RequestContext) => Promise<void>;
+  statusCode?: number;
+  message?: string;
+}
+```
+- `handler`: Optional function to execute for handling the request
+- `statusCode`: Optional HTTP status code for direct responses (e.g., 404, 500)
+- `message`: Optional response message for direct responses
 
 For detailed implementation specifications, see `docs/modularization-plan.md`.
 
