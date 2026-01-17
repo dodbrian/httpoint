@@ -8,9 +8,7 @@ import { getMimeType } from './utils/mime';
 import { parseMultipart } from './utils/multipart';
 import { getLocalIP } from './utils/network';
 import { generateDirectoryListing } from './views/directory-listing';
-import { Config } from './config/types';
-import { parseArgs } from './config/parser';
-import { validateConfig } from './config/validator';
+import { Config, parseArgs, validateConfig } from './config';
 
 
 
