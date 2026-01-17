@@ -9,6 +9,7 @@ import { getLocalIP } from './utils/network';
 import { generateDirectoryListing } from './views/directory-listing';
 import { Config, parseArgs, validateConfig } from './config';
 import { createRequestContext, RequestContext } from './context/request';
+import { bodyCollector } from './middleware/body-collector';
 
 
 function createServer(config: Config): http.Server {
@@ -16,9 +17,10 @@ function createServer(config: Config): http.Server {
     let context: RequestContext | undefined;
     try {
       context = await createRequestContext(req, config);
+      await bodyCollector(context);
 
       if (req.method === 'POST' && config.debug) {
-        console.log(`POST body for ${context.requestPath}:\n`, context.body.toString());
+        console.log(`POST body for ${context.requestPath}:\n`, context.body?.toString());
       }
       if (context.requestPath.startsWith('/_httpoint_assets/')) {
         const publicFilePath = path.join(__dirname, '_httpoint_assets', context.requestPath.substring(17));
@@ -43,6 +45,12 @@ function createServer(config: Config): http.Server {
             const boundaryMatch = contentType.match(/boundary=(.+)/);
             if (boundaryMatch) {
               const boundary = boundaryMatch[1];
+              if (!context.body) {
+                res.statusCode = 400;
+                res.end('Invalid request body');
+                console.log(`${req.method} ${context.requestPath} 400`);
+                return;
+              }
               const parts = parseMultipart(context.body, boundary);
               for (const part of parts) {
                 const uploadPath = path.join(context.filePath, part.filename);

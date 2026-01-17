@@ -7,27 +7,8 @@ export interface RequestContext {
   req: http.IncomingMessage;
   requestPath: string;
   filePath: string;
-  body: Buffer;
+  body: Buffer | undefined;
   parsedUrl: url.UrlWithParsedQuery;
-}
-
-async function collectBody(req: http.IncomingMessage): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    let totalSize = 0;
-    const MAX_BODY_SIZE = 100 * 1024 * 1024; // 100MB limit
-
-    req.on('data', (chunk: Buffer) => {
-      totalSize += chunk.length;
-      if (totalSize > MAX_BODY_SIZE) {
-        reject(new Error('Request body too large'));
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
 }
 
 function resolvePath(requestPath: string, config: Config): string {
@@ -50,7 +31,6 @@ export async function createRequestContext(req: http.IncomingMessage, config: Co
 
   const requestPath = decodeURIComponent(parsedUrl.pathname);
   const filePath = resolvePath(requestPath, config);
-  const body = await collectBody(req);
 
   if (!validatePath(filePath, config)) {
     throw new Error('Path validation failed - potential directory traversal');
@@ -60,7 +40,7 @@ export async function createRequestContext(req: http.IncomingMessage, config: Co
     req,
     requestPath,
     filePath,
-    body,
+    body: undefined,
     parsedUrl
   };
 }
