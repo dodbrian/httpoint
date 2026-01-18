@@ -88,13 +88,15 @@ describe('Pipeline Middleware', () => {
       const requestPromise = simulateRequestData(req)
 
       // Should not throw during pipeline execution
-      await Promise.all([
+      await expect(Promise.all([
         executePipeline(req, res, config),
         requestPromise,
-      ])
+      ])).resolves.toBeDefined()
 
-      // Should have attempted to handle the request (could be 200 or 500 depending on mock limitations)
+      // Should have created context successfully (not throw on stat/access)
+      // Status may be 200 or 500 depending on mock response handling
       expect(res.statusCode).toBeDefined()
+      expect([200, 404, 500]).toContain(res.statusCode)
     })
   })
 
@@ -173,49 +175,80 @@ describe('Pipeline Middleware', () => {
   })
 
   describe('Async Handling', () => {
-    it('should properly complete security middleware', async () => {
+    it('should complete security middleware without hanging on valid paths', async () => {
       const req = createMockReq('GET', '/valid/path.txt')
       const res = HttpMocks.createMockResponse()
 
       const requestPromise = simulateRequestData(req)
 
-      // Should complete without hanging
-      await Promise.all([
-        executePipeline(req, res, config),
-        requestPromise,
-      ])
+      // Should resolve without hanging (use timeout to detect hangs)
+      let timeoutHandle: NodeJS.Timeout | null = null
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('Pipeline hung')), 5000)
+      })
 
-      expect(res.statusCode).toBeDefined()
+      try {
+        await expect(Promise.race([
+          Promise.all([executePipeline(req, res, config), requestPromise]),
+          timeoutPromise,
+        ])).resolves.toBeDefined()
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle)
+      }
+
+      // Verify security middleware executed (would return 404 for missing file)
+      expect(res.statusCode).toBe(404)
     })
 
-    it('should properly complete body collection', async () => {
+    it('should complete body collection without hanging on POST requests', async () => {
       const req = createMockReq('POST', '/')
       const res = HttpMocks.createMockResponse()
 
       const requestPromise = simulateRequestData(req, 'test data')
 
-      // Should complete without hanging
-      await Promise.all([
-        executePipeline(req, res, config),
-        requestPromise,
-      ])
+      // Should resolve without hanging (use timeout to detect hangs)
+      let timeoutHandle: NodeJS.Timeout | null = null
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('Pipeline hung')), 5000)
+      })
 
-      expect(res.statusCode).toBeDefined()
+      try {
+        await expect(Promise.race([
+          Promise.all([executePipeline(req, res, config), requestPromise]),
+          timeoutPromise,
+        ])).resolves.toBeDefined()
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle)
+      }
+
+      // Verify body was collected and validated (missing Content-Type = 400)
+      expect(res.statusCode).toBe(400)
+      expect(res.data).toContain('Invalid content type')
     })
 
-    it('should properly complete router execution', async () => {
+    it('should complete router execution without hanging on directory requests', async () => {
       const req = createMockReq('GET', '/')
       const res = HttpMocks.createMockResponse()
 
       const requestPromise = simulateRequestData(req)
 
-      // Should complete without hanging
-      await Promise.all([
-        executePipeline(req, res, config),
-        requestPromise,
-      ])
+      // Should resolve without hanging (use timeout to detect hangs)
+      let timeoutHandle: NodeJS.Timeout | null = null
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('Pipeline hung')), 5000)
+      })
 
-      expect(res.statusCode).toBeDefined()
+      try {
+        await expect(Promise.race([
+          Promise.all([executePipeline(req, res, config), requestPromise]),
+          timeoutPromise,
+        ])).resolves.toBeDefined()
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle)
+      }
+
+      // Verify router executed and handled directory listing
+      expect(res.statusCode).toBe(200)
     })
 
     it('should properly complete logger execution', async () => {
@@ -276,7 +309,7 @@ describe('Pipeline Middleware', () => {
       expect(res.headers['Content-Type']).toBe('text/plain')
     })
 
-    it('should handle file requests without errors', async () => {
+    it('should handle file requests without throwing errors', async () => {
       const req = createMockReq('GET', '/test.txt')
       const res = HttpMocks.createMockResponse()
 
@@ -286,16 +319,19 @@ describe('Pipeline Middleware', () => {
       const requestPromise = simulateRequestData(req)
 
       // Pipeline should complete without throwing errors
-      await Promise.all([
+      await expect(Promise.all([
         executePipeline(req, res, config),
         requestPromise,
-      ])
+      ])).resolves.toBeDefined()
 
-      // Should have a response status code
+      // File was created, so router should attempt to serve (200 or 500 depending on mock)
+      // The key is that the pipeline completes without crashing
       expect(res.statusCode).toBeDefined()
+      expect(typeof res.statusCode).toBe('number')
+      expect([200, 404, 500]).toContain(res.statusCode)
     })
 
-    it('should handle POST requests with data', async () => {
+    it('should reject POST requests without multipart/form-data', async () => {
       const req = createMockReq('POST', '/', { 'content-type': 'application/x-www-form-urlencoded' })
       const res = HttpMocks.createMockResponse()
 
@@ -306,7 +342,9 @@ describe('Pipeline Middleware', () => {
         requestPromise,
       ])
 
-      expect(res.statusCode).toBeDefined()
+      // POST without multipart/form-data returns 400 (file upload requires multipart)
+      expect(res.statusCode).toBe(400)
+      expect(res.data).toContain('Invalid content type')
     })
   })
 
@@ -390,7 +428,7 @@ describe('Pipeline Middleware', () => {
       expect(res.statusCode).toBe(200)
     })
 
-    it('should handle POST requests with form data', async () => {
+    it('should reject form-urlencoded POST requests to root', async () => {
       const req = createMockReq('POST', '/', { 'content-type': 'application/x-www-form-urlencoded' })
       const res = HttpMocks.createMockResponse()
 
@@ -401,7 +439,9 @@ describe('Pipeline Middleware', () => {
         requestPromise,
       ])
 
-      expect(res.statusCode).toBeDefined()
+      // POST with form-urlencoded (not multipart) returns 400
+      expect(res.statusCode).toBe(400)
+      expect(res.data).toContain('Invalid content type')
     })
 
     it('should handle HEAD requests', async () => {
@@ -474,7 +514,7 @@ describe('Pipeline Middleware', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle empty request body gracefully', async () => {
+    it('should reject POST with empty body and no Content-Type', async () => {
       const req = createMockReq('POST', '/')
       const res = HttpMocks.createMockResponse()
 
@@ -485,7 +525,9 @@ describe('Pipeline Middleware', () => {
         requestPromise,
       ])
 
-      expect(res.statusCode).toBeDefined()
+      // POST without Content-Type returns 400 (Bad Request)
+      expect(res.statusCode).toBe(400)
+      expect(res.data).toContain('Invalid content type')
     })
 
     it('should handle requests with no headers', async () => {
@@ -499,7 +541,8 @@ describe('Pipeline Middleware', () => {
         requestPromise,
       ])
 
-      expect(res.statusCode).toBeDefined()
+      // Should handle request with missing headers gracefully
+      expect(res.statusCode).toBe(200)
     })
 
     it('should handle requests with complex query strings', async () => {
