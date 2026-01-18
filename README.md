@@ -1,5 +1,7 @@
 # HTTPoint
 
+![CI](https://github.com/dodbrian/httpoint/actions/workflows/ci.yml/badge.svg)
+
 A lightweight Node.js command-line application that serves static files from a local directory via HTTP, with support for file uploads and directory browsing.
 
 ## Features
