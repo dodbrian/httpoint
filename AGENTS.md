@@ -9,17 +9,21 @@ HTTPoint is a lightweight Node.js CLI application that serves static files via H
 ### Build & Development
 ```bash
 npm run build          # Compile TypeScript, run lint, copy assets
-npm run lint           # ESLint with TypeScript support
+npm run lint           # ESLint with TypeScript support  
 npm run lint:fix       # Auto-fix linting issues
 npm start              # Run compiled application
 npm run dev            # Build and run in one command
 ```
 
 ### Testing
-No test framework currently configured. When implementing tests:
-- Choose appropriate framework (Jest/Mocha recommended)
-- Update package.json scripts accordingly
-- Single test patterns: `npm test -- path/to/test.test.js` (Jest) or `npm test -- --grep "test name"` (Mocha)
+Jest framework planned in `tests/` directory with comprehensive unit test suite.
+- Single test file: `npm test -- tests/utils/mime.test.ts`
+- Single test case: `npm test -- -t "should return MIME type"`
+- Watch mode: `npm test -- --watch`
+- Coverage: `npm test -- --coverage` (when Jest is configured)
+- All tests: `npm test`
+
+See `tests/README.md` for full testing strategy and setup.
 
 ### Running
 ```bash
@@ -56,11 +60,11 @@ node dist/serve.js [options]
 
 ### Import Organization
 ```typescript
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
-import url from 'url';
-import { version } from '../package.json';  // Local imports last
+import http from 'http'
+import fs from 'fs'
+import path from 'path'
+import url from 'url'
+import { version } from '../package.json'  // Local imports last
 ```
 
 ### Error Handling Patterns
@@ -76,6 +80,8 @@ try {
 ```
 - HTTP status codes: 200 (success), 403 (forbidden), 404 (not found), 400 (bad request), 500 (server error)
 - Log format: `${req.method} ${requestPath} ${statusCode}`
+- Use typed error checking (err.code) for fs operations
+- Always add error context in logs for debugging
 
 ### Security Requirements
 - **Directory Traversal Protection**: Always validate file paths start with `config.root`
