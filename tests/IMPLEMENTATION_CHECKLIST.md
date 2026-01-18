@@ -59,20 +59,20 @@
   - [x] Test method routing
 
 ## Phase 4: Configuration
-- [ ] Create `config/parser.test.ts`
-  - [ ] Test CLI argument parsing
-  - [ ] Test environment variables
-  - [ ] Test default values
-  - [ ] Test validation integration
-- [ ] Create `config/validator.test.ts`
-  - [ ] Test port validation
-  - [ ] Test path validation
-  - [ ] Test schema validation
-  - [ ] Test error messages
-- [ ] Create `config/types.test.ts`
-  - [ ] Test type definitions
-  - [ ] Test type guards
-  - [ ] Test type utilities
+- [x] Create `config/parser.test.ts`
+   - [x] Test CLI argument parsing
+   - [x] Test environment variables
+   - [x] Test default values
+   - [x] Test validation integration
+- [x] Create `config/validator.test.ts`
+   - [x] Test port validation
+   - [x] Test path validation
+   - [x] Test schema validation
+   - [x] Test error messages
+- [x] Create `config/types.test.ts`
+   - [x] Test type definitions
+   - [x] Test type guards
+   - [x] Test type utilities
 
 ## Phase 5: Views & Context
 - [ ] Create `views/directory-listing.test.ts`
@@ -100,4 +100,4 @@
 
 ---
 
-**Progress**: 22/32 major tasks completed (69%)
+**Progress**: 25/32 major tasks completed (78%)
