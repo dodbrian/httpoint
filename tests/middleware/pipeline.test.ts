@@ -167,14 +167,16 @@ describe('Pipeline Middleware', () => {
       }, 10)
 
       // Should complete without hanging
+      let timeoutId: NodeJS.Timeout | undefined
       await expect(
         Promise.race([
           executePipeline(mockReq, mockRes, mockConfig),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout')), 2000)
+            timeoutId = setTimeout(() => reject(new Error('Timeout')), 2000)
           ),
         ])
       ).resolves.not.toThrow()
+      if (timeoutId) clearTimeout(timeoutId)
     })
 
     it('should properly await body collection', async () => {
@@ -190,14 +192,16 @@ describe('Pipeline Middleware', () => {
         mockReq.emit('end')
       }, 10)
 
+      let bodyTimeoutId: NodeJS.Timeout | undefined
       await expect(
         Promise.race([
           executePipeline(mockReq, mockRes, mockConfig),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout')), 2000)
+            bodyTimeoutId = setTimeout(() => reject(new Error('Timeout')), 2000)
           ),
         ])
       ).resolves.not.toThrow()
+      if (bodyTimeoutId) clearTimeout(bodyTimeoutId)
     })
 
     it('should properly await router execution', async () => {
@@ -212,14 +216,16 @@ describe('Pipeline Middleware', () => {
         mockReq.emit('end')
       }, 10)
 
+      let routerTimeoutId: NodeJS.Timeout | undefined
       await expect(
         Promise.race([
           executePipeline(mockReq, mockRes, mockConfig),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout')), 2000)
+            routerTimeoutId = setTimeout(() => reject(new Error('Timeout')), 2000)
           ),
         ])
       ).resolves.not.toThrow()
+      if (routerTimeoutId) clearTimeout(routerTimeoutId)
     })
 
     it('should properly await logger execution', async () => {
