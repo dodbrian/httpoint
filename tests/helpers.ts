@@ -1,10 +1,12 @@
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 
 // Test helper utilities
 export class TestHelpers {
   static async createTempDirectory(): Promise<string> {
-    const tmpDir = path.join(__dirname, '../temp', `test-${Date.now()}`)
+    const randomId = crypto.randomBytes(8).toString('hex')
+    const tmpDir = path.join(__dirname, '../temp', `test-${randomId}`)
     await fs.promises.mkdir(tmpDir, { recursive: true })
     return tmpDir
   }

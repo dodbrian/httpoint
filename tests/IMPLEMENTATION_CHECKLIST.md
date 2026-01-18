@@ -33,30 +33,30 @@
   - [x] Test malformed data
 
 ## Phase 3: Security & Middleware
-- [ ] Create `middleware/security.test.ts`
-  - [ ] Test directory traversal protection
-  - [ ] Test path normalization
-  - [ ] Test SecurityViolationError
-  - [ ] Test symbolic link handling
-- [ ] Create `middleware/logger.test.ts`
-  - [ ] Test request logging
-  - [ ] Test HTTP methods
-  - [ ] Test status codes
-  - [ ] Test error logging
-- [ ] Create `middleware/body-collector.test.ts`
-  - [ ] Test body accumulation
-  - [ ] Test content types
-  - [ ] Test size limits
-  - [ ] Test streaming
-- [ ] Create `middleware/pipeline.test.ts`
-  - [ ] Test execution order
-  - [ ] Test error propagation
-  - [ ] Test async handling
-- [ ] Create `middleware/router.test.ts`
-  - [ ] Test route matching
-  - [ ] Test parameter extraction
-  - [ ] Test 404 handling
-  - [ ] Test method routing
+- [x] Create `middleware/security.test.ts`
+  - [x] Test directory traversal protection
+  - [x] Test path normalization
+  - [x] Test SecurityViolationError
+  - [x] Test symbolic link handling
+- [x] Create `middleware/logger.test.ts`
+  - [x] Test request logging
+  - [x] Test HTTP methods
+  - [x] Test status codes
+  - [x] Test error logging
+- [x] Create `middleware/body-collector.test.ts`
+  - [x] Test body accumulation
+  - [x] Test content types
+  - [x] Test size limits
+  - [x] Test streaming
+- [x] Create `middleware/pipeline.test.ts`
+  - [x] Test execution order
+  - [x] Test error propagation
+  - [x] Test async handling
+- [x] Create `middleware/router.test.ts`
+  - [x] Test route matching
+  - [x] Test parameter extraction
+  - [x] Test 404 handling
+  - [x] Test method routing
 
 ## Phase 4: Configuration
 - [ ] Create `config/parser.test.ts`
@@ -100,4 +100,4 @@
 
 ---
 
-**Progress**: 17/32 major tasks completed (53%)
+**Progress**: 22/32 major tasks completed (69%)
