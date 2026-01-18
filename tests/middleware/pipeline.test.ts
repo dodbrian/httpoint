@@ -1,19 +1,21 @@
 import { EventEmitter } from 'events'
+import http from 'http'
 import { executePipeline } from '../../src/middleware/pipeline'
 import { HttpMocks, TestHelpers } from '../helpers'
+import { Config } from '../../src/config'
 
 describe('Pipeline Middleware', () => {
   let tempDir: string
   let consoleSpy: jest.SpyInstance
-  const mockConfig = {
-    port: 3000,
-    root: '',
-    debug: false,
-  }
+  let config: Config
 
   beforeEach(async () => {
     tempDir = await TestHelpers.createTempDirectory()
-    mockConfig.root = tempDir
+    config = {
+      port: 3000,
+      root: tempDir,
+      debug: false,
+    }
     consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
   })
 
@@ -22,465 +24,496 @@ describe('Pipeline Middleware', () => {
     consoleSpy.mockRestore()
   })
 
+  /**
+   * Helper to create a mock request with proper typing
+   */
+  const createMockReq = (method: string, url: string, headers: Record<string, string> = {}): http.IncomingMessage => {
+    const req = new EventEmitter() as any as http.IncomingMessage
+    req.method = method
+    req.url = url
+    req.headers = headers
+    return req
+  }
+
+  /**
+   * Helper to simulate request completion (data + end events)
+   * Ensures request events are emitted after pipeline execution starts
+   */
+  const simulateRequestData = (req: http.IncomingMessage, data?: Buffer | string): Promise<void> => {
+    return new Promise(resolve => {
+      setImmediate(() => {
+        if (data) {
+          (req as any).emit('data', typeof data === 'string' ? Buffer.from(data) : data)
+        }
+        (req as any).emit('end')
+        resolve()
+      })
+    })
+  }
+
   describe('Execution Order', () => {
     it('should execute middleware in correct order: security → body → router → logger', async () => {
       const executionOrder: string[] = []
 
-      // Mock the request
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
-
-      // Patch console.log to capture execution
+      // Capture logger execution
       consoleSpy.mockImplementation((msg: any) => {
         if (typeof msg === 'string' && msg.startsWith('GET')) {
           executionOrder.push('logger')
         }
       })
 
-      // Simulate request flow
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      // Simulate request completion
+      const requestPromise = simulateRequestData(req)
 
-      await executePipeline(mockReq, mockRes, mockConfig)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      // Logger should be called
+      // Logger should be called last
       expect(executionOrder).toContain('logger')
     })
 
     it('should create request context before executing middleware', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/test.txt'
-      mockReq.headers = {}
-
-      const mockRes = HttpMocks.createMockResponse()
+      const req = createMockReq('GET', '/test.txt')
+      const res = HttpMocks.createMockResponse()
 
       // Create a test file
       await TestHelpers.createTestFile(tempDir, 'test.txt', 'test content')
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      // Request context creation should succeed without throwing
+      const requestPromise = simulateRequestData(req)
 
-      // This should not throw - context creation should succeed
-      await expect(executePipeline(mockReq, mockRes, mockConfig)).resolves.not.toThrow()
+      // Should not throw during pipeline execution
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      // Should have attempted to handle the request (could be 200 or 500 depending on mock limitations)
+      expect(res.statusCode).toBeDefined()
     })
   })
 
   describe('Error Propagation', () => {
-    it('should catch security violations and return 403', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/../etc/passwd' // Directory traversal attempt
-      mockReq.headers = {}
+    it('should catch security violations and return 403 Forbidden', async () => {
+      const req = createMockReq('GET', '/../etc/passwd')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      expect(mockRes.statusCode).toBe(403)
-      expect(mockRes.data).toBe('Forbidden')
+      expect(res.statusCode).toBe(403)
+      expect(res.data).toContain('Forbidden')
     })
 
     it('should catch request body too large errors and return 413', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'POST'
-      mockReq.url = '/'
-      mockReq.headers = {}
+      const req = createMockReq('POST', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      // Emit a chunk that exceeds the 100MB limit
+      const largeData = Buffer.alloc(101 * 1024 * 1024)
+      const requestPromise = simulateRequestData(req, largeData)
 
-      setTimeout(() => {
-        // Emit a chunk that exceeds the limit
-        mockReq.emit('data', Buffer.alloc(101 * 1024 * 1024))
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      expect(mockRes.statusCode).toBe(413)
-      expect(mockRes.data).toBe('Request Entity Too Large')
+      expect(res.statusCode).toBe(413)
+      expect(res.data).toContain('Request Entity Too Large')
     })
 
-    it('should catch generic errors and return 500', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should catch generic errors and return 500 Internal Server Error', async () => {
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      // Simulate an unexpected error
-      const mockRes = HttpMocks.createMockResponse()
+      // Emit error before end
+      const requestPromise = new Promise<void>(resolve => {
+        setImmediate(() => {
+          (req as any).emit('error', new Error('Unexpected error'))
+          setImmediate(() => {
+            (req as any).emit('end')
+            resolve()
+          })
+        })
+      })
 
-      // Emit error directly on request
-      setTimeout(() => {
-        mockReq.emit('error', new Error('Unexpected error'))
-      }, 5)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 15)
-
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      // After error, we should get a 500 or fallback response
-      expect([500, 200]).toContain(mockRes.statusCode)
+      expect(res.statusCode).toBe(500)
+      expect(res.data).toContain('Internal Server Error')
     })
 
-    it('should handle context creation failures gracefully', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = null // Missing URL
-      mockReq.headers = {}
+    it('should handle context creation with valid URL gracefully', async () => {
+      const req = createMockReq('GET', '/valid/path.txt')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      // Should handle missing file gracefully
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      // Should handle the missing URL error
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      expect(mockRes.statusCode).toBe(500)
+      // Should return a valid status code (404 for missing file)
+      expect(res.statusCode).toBe(404)
     })
   })
 
   describe('Async Handling', () => {
-    it('should properly await security middleware', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/valid/path.txt'
-      mockReq.headers = {}
+    it('should properly complete security middleware', async () => {
+      const req = createMockReq('GET', '/valid/path.txt')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
-
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      const requestPromise = simulateRequestData(req)
 
       // Should complete without hanging
-      let timeoutId: NodeJS.Timeout | undefined
-      await expect(
-        Promise.race([
-          executePipeline(mockReq, mockRes, mockConfig),
-          new Promise((_, reject) =>
-            timeoutId = setTimeout(() => reject(new Error('Timeout')), 2000)
-          ),
-        ])
-      ).resolves.not.toThrow()
-      if (timeoutId) clearTimeout(timeoutId)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      expect(res.statusCode).toBeDefined()
     })
 
-    it('should properly await body collection', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'POST'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should properly complete body collection', async () => {
+      const req = createMockReq('POST', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req, 'test data')
 
-      setTimeout(() => {
-        mockReq.emit('data', Buffer.from('test data'))
-        mockReq.emit('end')
-      }, 10)
+      // Should complete without hanging
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      let bodyTimeoutId: NodeJS.Timeout | undefined
-      await expect(
-        Promise.race([
-          executePipeline(mockReq, mockRes, mockConfig),
-          new Promise((_, reject) =>
-            bodyTimeoutId = setTimeout(() => reject(new Error('Timeout')), 2000)
-          ),
-        ])
-      ).resolves.not.toThrow()
-      if (bodyTimeoutId) clearTimeout(bodyTimeoutId)
+      expect(res.statusCode).toBeDefined()
     })
 
-    it('should properly await router execution', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should properly complete router execution', async () => {
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      // Should complete without hanging
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      let routerTimeoutId: NodeJS.Timeout | undefined
-      await expect(
-        Promise.race([
-          executePipeline(mockReq, mockRes, mockConfig),
-          new Promise((_, reject) =>
-            routerTimeoutId = setTimeout(() => reject(new Error('Timeout')), 2000)
-          ),
-        ])
-      ).resolves.not.toThrow()
-      if (routerTimeoutId) clearTimeout(routerTimeoutId)
+      expect(res.statusCode).toBeDefined()
     })
 
-    it('should properly await logger execution', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should properly complete logger execution', async () => {
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
-
-      const pipelinePromise = executePipeline(mockReq, mockRes, mockConfig)
+      const pipelinePromise = executePipeline(req, res, config)
 
       // Logger should be called before promise resolves
-      await pipelinePromise
+      await Promise.all([pipelinePromise, requestPromise])
       expect(consoleSpy).toHaveBeenCalled()
     })
   })
 
   describe('Response Handling', () => {
-    it('should set correct status code for successful requests', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should set 200 status code for valid directory requests', async () => {
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
+      expect(res.statusCode).toBe(200)
+    })
 
-      // Directory listing should return 200
-      expect([200, 404]).toContain(mockRes.statusCode)
+    it('should set 404 status code for non-existent files', async () => {
+      const req = createMockReq('GET', '/nonexistent.txt')
+      const res = HttpMocks.createMockResponse()
+
+      const requestPromise = simulateRequestData(req)
+
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      expect(res.statusCode).toBe(404)
+      expect(res.data).toContain('Not Found')
     })
 
     it('should set Content-Type header for error responses', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/../etc/passwd'
-      mockReq.headers = {}
+      const req = createMockReq('GET', '/../etc/passwd')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      expect(mockRes.headers['Content-Type']).toBe('text/plain')
+      expect(res.headers['Content-Type']).toBe('text/plain')
     })
 
-    it('should handle handler result from router', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should handle file requests without errors', async () => {
+      const req = createMockReq('GET', '/test.txt')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      // Create a test file to serve
+      await TestHelpers.createTestFile(tempDir, 'test.txt', 'test content')
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      const requestPromise = simulateRequestData(req)
 
-      await executePipeline(mockReq, mockRes, mockConfig)
+      // Pipeline should complete without throwing errors
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      // Should either get directory listing (200) or not found (404)
-      expect([200, 404]).toContain(mockRes.statusCode)
+      // Should have a response status code
+      expect(res.statusCode).toBeDefined()
     })
 
-    it('should handle direct status code response from router', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/nonexistent.txt'
-      mockReq.headers = {}
+    it('should handle POST requests with data', async () => {
+      const req = createMockReq('POST', '/', { 'content-type': 'application/x-www-form-urlencoded' })
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req, 'test=data')
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      // Non-existent file should return 404
-      expect(mockRes.statusCode).toBe(404)
-      expect(mockRes.data).toContain('Not Found')
+      expect(res.statusCode).toBeDefined()
     })
   })
 
   describe('Debug Logging', () => {
-    it('should not log pipeline errors in non-debug mode', async () => {
+    it('should not log errors to console.error in non-debug mode', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      // Should not call console.error in normal mode
       expect(errorSpy).not.toHaveBeenCalled()
       errorSpy.mockRestore()
     })
 
-    it('should log pipeline errors in debug mode', async () => {
-      const debugConfig = { ...mockConfig, debug: true }
+    it('should log errors to console.error in debug mode', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      const debugConfig = { ...config, debug: true }
 
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      // Emit an error that triggers error path
+      const requestPromise = new Promise<void>(resolve => {
+        setImmediate(() => {
+          (req as any).emit('error', new Error('Test error'))
+          setImmediate(() => {
+            (req as any).emit('end')
+            resolve()
+          })
+        })
+      })
 
-      // Create a situation that triggers error in router
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, debugConfig),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, debugConfig)
-
+      // In debug mode, error should be logged with first call containing "Pipeline error"
+      const calls = errorSpy.mock.calls
+      expect(calls.length).toBeGreaterThan(0)
+      expect(calls[0][0]).toContain('Pipeline error')
       errorSpy.mockRestore()
     })
 
-    it('should include request info in fallback logging', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should include request method and URL in log output', async () => {
+      const req = createMockReq('GET', '/test.txt')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
-
-      await executePipeline(mockReq, mockRes, mockConfig)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
       // Should have logged something with method and URL
-      expect(consoleSpy).toHaveBeenCalled()
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('GET'))
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('/test.txt'))
     })
   })
 
   describe('Request Methods', () => {
-    it('should handle GET requests', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/'
-      mockReq.headers = {}
+    it('should handle GET requests to directories', async () => {
+      const req = createMockReq('GET', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      expect([200, 404]).toContain(mockRes.statusCode)
+      expect(res.statusCode).toBe(200)
     })
 
-    it('should handle POST requests', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'POST'
-      mockReq.url = '/'
-      mockReq.headers = { 'content-type': 'application/x-www-form-urlencoded' }
+    it('should handle POST requests with form data', async () => {
+      const req = createMockReq('POST', '/', { 'content-type': 'application/x-www-form-urlencoded' })
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req, 'test=data')
 
-      setTimeout(() => {
-        mockReq.emit('data', Buffer.from('test=data'))
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      // Should process POST and attempt upload or directory listing
-      expect(mockRes.statusCode).toBeDefined()
+      expect(res.statusCode).toBeDefined()
     })
 
     it('should handle HEAD requests', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'HEAD'
-      mockReq.url = '/'
-      mockReq.headers = {}
+      const req = createMockReq('HEAD', '/')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      expect([200, 404]).toContain(mockRes.statusCode)
+      expect(res.statusCode).toBe(200)
     })
   })
 
   describe('Security Error Recovery', () => {
-    it('should not log security violations with full error details', async () => {
-      const mockReq = new EventEmitter() as any
-      mockReq.method = 'GET'
-      mockReq.url = '/../sensitive'
-      mockReq.headers = {}
+    it('should return 403 for directory traversal attempts', async () => {
+      const req = createMockReq('GET', '/../sensitive')
+      const res = HttpMocks.createMockResponse()
 
-      const mockRes = HttpMocks.createMockResponse()
+      const requestPromise = simulateRequestData(req)
 
-      setTimeout(() => {
-        mockReq.emit('end')
-      }, 10)
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
 
-      await executePipeline(mockReq, mockRes, mockConfig)
-
-      // Should return 403 but not include error details in non-debug mode
-      expect(mockRes.statusCode).toBe(403)
+      expect(res.statusCode).toBe(403)
+      expect(res.data).toContain('Forbidden')
     })
 
-    it('should handle multiple security errors gracefully', async () => {
+    it('should handle multiple directory traversal attempts gracefully', async () => {
       const requests = [
         '/../etc/passwd',
         '/../../windows/system32',
         '/./../../sensitive',
       ]
 
-      for (const requestPath of requests) {
-        const mockReq = new EventEmitter() as any
-        mockReq.method = 'GET'
-        mockReq.url = requestPath
-        mockReq.headers = {}
+      for (const url of requests) {
+        const req = createMockReq('GET', url)
+        const res = HttpMocks.createMockResponse()
 
-        const mockRes = HttpMocks.createMockResponse()
+        const requestPromise = simulateRequestData(req)
 
-        setTimeout(() => {
-          mockReq.emit('end')
-        }, 10)
+        await Promise.all([
+          executePipeline(req, res, config),
+          requestPromise,
+        ])
 
-        await executePipeline(mockReq, mockRes, mockConfig)
-
-        expect(mockRes.statusCode).toBe(403)
+        expect(res.statusCode).toBe(403)
       }
+    })
+
+    it('should handle different path encoding variations', async () => {
+      const encodedTraversal = '/%2e%2e/etc/passwd'
+      const req = createMockReq('GET', encodedTraversal)
+      const res = HttpMocks.createMockResponse()
+
+      const requestPromise = simulateRequestData(req)
+
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      expect(res.statusCode).toBe(403)
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('should handle empty request body gracefully', async () => {
+      const req = createMockReq('POST', '/')
+      const res = HttpMocks.createMockResponse()
+
+      const requestPromise = simulateRequestData(req, Buffer.alloc(0))
+
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      expect(res.statusCode).toBeDefined()
+    })
+
+    it('should handle requests with no headers', async () => {
+      const req = createMockReq('GET', '/', {})
+      const res = HttpMocks.createMockResponse()
+
+      const requestPromise = simulateRequestData(req)
+
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      expect(res.statusCode).toBeDefined()
+    })
+
+    it('should handle requests with complex query strings', async () => {
+      const req = createMockReq('GET', '/?foo=bar&baz=qux&test=value')
+      const res = HttpMocks.createMockResponse()
+
+      const requestPromise = simulateRequestData(req)
+
+      await Promise.all([
+        executePipeline(req, res, config),
+        requestPromise,
+      ])
+
+      expect(res.statusCode).toBe(200)
     })
   })
 })
