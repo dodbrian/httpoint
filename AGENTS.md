@@ -125,7 +125,14 @@ After each ticket:
 ```bash
 npm run build    # TypeScript compilation
 npm run lint     # Code style verification
+npm test         # Run all tests
 npm start        # Manual functionality test
+```
+
+### Git Commit Requirements
+Before committing to git, always run all tests:
+```bash
+npm test         # Must pass before git commit
 ```
 
 ## Key Implementation Details
