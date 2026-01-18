@@ -16,14 +16,12 @@ npm run dev            # Build and run in one command
 ```
 
 ### Testing
-Jest framework planned in `tests/` directory with comprehensive unit test suite.
-- Single test file: `npm test -- tests/utils/mime.test.ts`
-- Single test case: `npm test -- -t "should return MIME type"`
-- Watch mode: `npm test -- --watch`
-- Coverage: `npm test -- --coverage` (when Jest is configured)
+Jest with TypeScript support, using `ts-jest` preset.
 - All tests: `npm test`
-
-See `tests/README.md` for full testing strategy and setup.
+- Single test file: `npm test -- tests/utils/mime.test.ts`
+- Single test case: `npm test -- -t "test name pattern"`
+- Watch mode: `npm test -- --watch`
+- Coverage report: `npm test -- --coverage`
 
 ### Running
 ```bash
@@ -31,6 +29,12 @@ node dist/serve.js [options]
 # Options: --port <number>, --path <directory>, --debug, --help
 # Environment: HTTPOINT_PORT, HTTPOINT_ROOT
 ```
+
+## Core Programming Principles
+
+1. **Always Program to Interfaces**: Design and implement code using interfaces/contracts. Depend on abstractions, not concrete implementations.
+2. **Never Modify Existing Interfaces Without Approval**: Interface changes are breaking changes. Always request user approval before modifying any existing interface.
+3. **Treat All Warnings as Errors**: Fix all warnings from TypeScript, ESLint, and tests immediately. No warnings should persist in builds, tests, or runtime.
 
 ## Code Style Guidelines
 
@@ -59,13 +63,10 @@ node dist/serve.js [options]
 - HTML/CSS classes: kebab-case (`drop-area`, `upload-overlay`)
 
 ### Import Organization
-```typescript
-import http from 'http'
-import fs from 'fs'
-import path from 'path'
-import url from 'url'
-import { version } from '../package.json'  // Local imports last
-```
+- Node.js built-in imports first (in order: http, fs, path, url, os)
+- Local imports last
+- Example order: `import http from 'http'`, then `import { Config } from './config'`
+- Use named imports for local modules, default imports for packages
 
 ### Error Handling Patterns
 ```typescript
@@ -105,49 +106,18 @@ From `.clinerules/`:
 1. Do not attempt to open md files from CLI after finishing a task
 2. Before making changes to the code, always document them in `docs/spec.md`
 
-## Ticket-Based Development
+## Git & Validation Workflow
 
-### Ticket Structure
-- Location: `docs/tickets/`
-- Naming: `phase{number}-{order}-{description}.md`
-- Example: `phase1-001-mime-utility.md`
-
-### Implementation Phases
-1. **Phase 1**: Utils and Views (no app dependencies)
-2. **Phase 2**: Config and Context (foundational types)
-3. **Phase 3**: Middleware (independent, testable)
-4. **Phase 4**: Handlers (use utils, no middleware dependencies)
-5. **Phase 5**: Router and Server (orchestration)
-6. **Phase 6**: Entry Point (CLI refactoring)
-
-### Validation Workflow
-After each ticket:
-```bash
-npm run build    # TypeScript compilation
-npm run lint     # Code style verification
-npm test         # Run all tests
-npm start        # Manual functionality test
-```
-
-### Git Commit Requirements
 Before committing to git, always run all tests:
 ```bash
 npm test         # Must pass before git commit
+npm run build    # Verify TypeScript compilation and linting
 ```
-
-## Key Implementation Details
-
-- **Multipart Parser**: Custom Buffer-based implementation
-- **File Upload**: POST `multipart/form-data`, original filenames preserved
-- **Directory Listings**: HTML with file sizes (B, KB, MB, GB, TB)
-- **Network Detection**: Auto-find non-internal IPv4 for LAN access
-- **Graceful Shutdown**: SIGINT handler for proper server closure
 
 ## Development Workflow
 
 1. Check `docs/tickets/` for related work
-2. Read relevant code sections to understand implementation
-3. Update `docs/spec.md` with behavior changes
-4. Follow existing code style and conventions
-5. Test manually with different file types and directory structures
-6. Validate directory traversal protection remains intact
+2. Update `docs/spec.md` with behavior changes before coding
+3. Follow existing code style and conventions
+4. Test manually with different file types and directory structures
+5. Validate directory traversal protection remains intact
