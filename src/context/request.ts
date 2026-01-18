@@ -2,6 +2,7 @@ import http from 'http';
 import path from 'path';
 import url from 'url';
 import { Config } from '../config';
+import { SecurityViolationError } from '../middleware/security';
 
 export interface RequestContext {
   req: http.IncomingMessage;
@@ -35,7 +36,6 @@ export async function createRequestContext(req: http.IncomingMessage, res: http.
   const filePath = resolvePath(requestPath, config);
 
   if (!validatePath(filePath, config)) {
-    const { SecurityViolationError } = require('../middleware/security');
     throw new SecurityViolationError('Path validation failed - potential directory traversal');
   }
 
