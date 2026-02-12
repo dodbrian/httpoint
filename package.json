@@ -11,11 +11,12 @@
     "httpoint": "dist/serve.js"
   },
   "scripts": {
-    "build": "npm run lint && tsc && node scripts/copy-assets.js",
+    "build": "npm run lint && npm run lint:likec4 && tsc && node scripts/copy-assets.js",
     "start": "node dist/serve.js",
     "dev": "npm run build && node dist/serve.js",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "lint:likec4": "likec4 validate docs",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -41,6 +42,7 @@
     "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^9.39.2",
     "jest": "^30.2.0",
+    "likec4": "^1.48.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.7.2"
   }

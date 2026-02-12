@@ -12,7 +12,8 @@ A lightweight Node.js command-line application that serves static files from a l
 - 🌐 Accessible on local network (LAN)
 - ⚙️ Configurable via environment variables or CLI arguments
 - 📝 Request logging
-- 💾 No external dependencies
+- 💾 No external dependencies (core)
+- 🏗️ Architecture documentation with LikeC4 validation
 
 ## Usage
 
@@ -95,6 +96,12 @@ node src/serve.js --port 3000
 
 # Test in another terminal
 curl http://localhost:3000/
+```
+
+### Architecture Documentation
+```bash
+# Validate LikeC4 architecture diagrams
+npm run lint:likec4
 ```
 
 ## Requirements
