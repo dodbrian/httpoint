@@ -1,0 +1,74 @@
+specification {
+  element person {
+    notation "User"
+    style {
+      shape person
+    }
+  }
+  element application {
+    notation "Application"
+    style {
+      shape rectangle
+    }
+  }
+  element component {
+    notation "Component"
+    style {
+      shape rectangle
+    }
+  }
+  element external {
+    notation "External System"
+    style {
+      shape storage
+    }
+  }
+}
+
+model {
+  cli_user = person 'CLI User'
+
+  htttpoint_cli = application 'HTTPoint CLI' {
+    config_service = component 'Config Service'
+    http_server = component 'HTTP Server' {
+      middleware_pipeline = component 'Middleware Pipeline' {
+        security_middleware = component 'Security Middleware'
+        body_collector = component 'Body Collector'
+        router = component 'Router' {
+          static_handler = component 'Static File Handler'
+          directory_handler = component 'Directory Handler'
+          upload_handler = component 'Upload Handler'
+        }
+        logger = component 'Logger'
+      }
+    }
+  }
+
+  filesystem = external 'File System'
+
+  cli_user -> htttpoint_cli 'sends HTTP requests'
+
+  config_service -> filesystem 'reads config'
+  
+  security_middleware -> router 'passes validated request'
+  body_collector -> router 'passes request body'
+  
+  static_handler -> filesystem 'reads files'
+  directory_handler -> filesystem 'lists files'
+  upload_handler -> filesystem 'writes files'
+  
+  logger -> filesystem 'writes logs'
+}
+
+views {
+  view index {
+    include *
+    include *->*
+	}
+
+  view components {
+    include cli_user, htttpoint_cli, filesystem
+    include cli_user -> htttpoint_cli
+    include htttpoint_cli -> filesystem
+  }
+}
